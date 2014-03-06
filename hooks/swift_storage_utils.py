@@ -16,7 +16,7 @@ from swift_storage_context import (
     RsyncContext,
 )
 
-from charmhelpers.fetch import apt_install, apt_update
+from charmhelpers.fetch import apt_upgrade, apt_update
 
 from charmhelpers.core.host import (
     mkdir,
@@ -127,7 +127,7 @@ def do_openstack_upgrade(configs):
         '--option', 'Dpkg::Options::=--force-confdef',
     ]
     apt_update()
-    apt_install(packages=PACKAGES, options=dpkg_opts, fatal=True)
+    apt_upgrade(options=dpkg_opts, fatal=True)
     configs.set_release(openstack_release=new_os_rel)
     configs.write_all()
     [service_restart(svc) for svc in
