@@ -60,7 +60,8 @@ ACCOUNT_SVCS = [
 
 CONTAINER_SVCS = [
     'swift-container', 'swift-container-auditor',
-    'swift-container-updater', 'swift-container-replicator'
+    'swift-container-updater', 'swift-container-replicator',
+    'swift-container-sync'
 ]
 
 OBJECT_SVCS = [
