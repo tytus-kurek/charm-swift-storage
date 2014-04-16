@@ -6,7 +6,7 @@ import swift_storage_utils as swift_utils
 
 TO_PATCH = [
     'apt_update',
-    'apt_install',
+    'apt_upgrade',
     'log',
     'config',
     'configure_installation_source',
@@ -215,10 +215,9 @@ class SwiftStorageUtilsTests(CharmTestCase):
             '--option', 'Dpkg::Options::=--force-confdef',
         ]
         self.assertTrue(self.apt_update.called)
-        self.apt_install.assert_called_with(
-            packages=swift_utils.PACKAGES,
+        self.apt_upgrade.assert_called_with(
             options=dpkg_opts,
-            fatal=True
+            fatal=True, dist=True
         )
         services = (swift_utils.ACCOUNT_SVCS + swift_utils.CONTAINER_SVCS +
                     swift_utils.OBJECT_SVCS)
