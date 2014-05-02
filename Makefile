@@ -12,3 +12,7 @@ test:
 
 sync:
 	@charm-helper-sync -c charm-helpers.yaml
+
+publish:
+	bzr push lp:charms/swift-storage
+	bzr push lp:charms/trusty/swift-storage
