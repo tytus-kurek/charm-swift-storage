@@ -21,7 +21,6 @@ from charmhelpers.fetch import apt_upgrade, apt_update
 from charmhelpers.core.host import (
     mkdir,
     mount,
-    fstab_add,
     service_restart,
 )
 
