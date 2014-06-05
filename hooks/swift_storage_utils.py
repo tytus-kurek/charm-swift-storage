@@ -181,7 +181,8 @@ def setup_storage():
         _dev = os.path.basename(dev)
         _mp = os.path.join('/srv', 'node', _dev)
         mkdir(_mp, owner='swift', group='swift')
-        mount(dev, '/srv/node/%s' % _dev, persist=True)
+        mount(dev, '/srv/node/%s' % _dev, persist=True,
+              filesystem="xfs")
     check_call(['chown', '-R', 'swift:swift', '/srv/node/'])
     check_call(['chmod', '-R', '0750', '/srv/node/'])
 
