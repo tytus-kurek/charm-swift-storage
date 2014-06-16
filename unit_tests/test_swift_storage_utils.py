@@ -101,12 +101,17 @@ class SwiftStorageUtilsTests(CharmTestCase):
         self.assertEquals(swift_utils.determine_block_devices(), None)
 
     def _fake_ensure(self, bdev):
-        return bdev.split('|').pop(0)
+        # /dev/vdz is a missing dev
+        if '/dev/vdz' in bdev:
+            return None
+        else:
+            return bdev.split('|').pop(0)
 
     @patch.object(swift_utils, 'ensure_block_device')
     def test_determine_block_device_single_dev(self, _ensure):
         _ensure.side_effect = self._fake_ensure
-        self.test_config.set('block-device', '/dev/vdb')
+        bdevs = '/dev/vdb'
+        self.test_config.set('block-device', bdevs)
         result = swift_utils.determine_block_devices()
         self.assertEquals(['/dev/vdb'], result)
 
@@ -118,6 +123,15 @@ class SwiftStorageUtilsTests(CharmTestCase):
         result = swift_utils.determine_block_devices()
         ex = ['/dev/vdb', '/dev/vdc', '/tmp/swift.img']
         self.assertEquals(ex, result)
+
+    @patch.object(swift_utils, 'ensure_block_device')
+    def test_determine_block_device_with_missing(self, _ensure):
+        _ensure.side_effect = self._fake_ensure
+        bdevs = '/dev/vdb /srv/swift.img|20G /dev/vdz'
+        self.test_config.set('block-device', bdevs)
+        result = swift_utils.determine_block_devices()
+        ex = ['/dev/vdb', '/srv/swift.img']
+        self.assertEqual(ex, result)
 
     @patch.object(swift_utils, 'find_block_devices')
     @patch.object(swift_utils, 'ensure_block_device')
