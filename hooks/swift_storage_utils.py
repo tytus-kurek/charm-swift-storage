@@ -164,7 +164,11 @@ def determine_block_devices():
     else:
         bdevs = block_device.split(' ')
 
-    return [ensure_block_device(bd) for bd in bdevs]
+    # attempt to ensure block devices, but filter out missing devs
+    _none = ['None', 'none', None]
+    valid_bdevs = [x for x in map(ensure_block_device, bdevs) if x not in _none]
+    log('Valid ensured block devices: %s' % valid_bdevs)
+    return valid_bdevs
 
 
 def mkfs_xfs(bdev):
