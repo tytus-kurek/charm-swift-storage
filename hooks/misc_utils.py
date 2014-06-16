@@ -56,7 +56,8 @@ def ensure_block_device(block_device):
 
     if not is_block_device(bdev):
         log('Failed to locate valid block device at %s' % bdev, level=ERROR)
-        raise
+        # ignore missing block devices
+        return
 
     return bdev
 
