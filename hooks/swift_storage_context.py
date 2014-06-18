@@ -69,5 +69,7 @@ class SwiftStorageServerContext(OSContextGenerator):
             'container_server_port': config('container-server-port'),
             'object_server_port': config('object-server-port'),
             'workers': psutil.NUM_CPUS * multiplier,
+            'object_server_threads_per_disk': config(
+                'object-server-threads-per-disk'),
         }
         return ctxt
