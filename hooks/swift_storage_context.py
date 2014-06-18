@@ -61,10 +61,13 @@ class SwiftStorageServerContext(OSContextGenerator):
     interfaces = []
 
     def __call__(self):
+        import psutil
+        multiplier = config('worker-multiplier') or 1
         ctxt = {
             'local_ip': unit_private_ip(),
             'account_server_port': config('account-server-port'),
             'container_server_port': config('container-server-port'),
             'object_server_port': config('object-server-port'),
+            'workers': psutil.NUM_CPUS * multiplier,
         }
         return ctxt
