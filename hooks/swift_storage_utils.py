@@ -48,7 +48,7 @@ from charmhelpers.contrib.openstack import (
 
 PACKAGES = [
     'swift', 'swift-account', 'swift-container', 'swift-object',
-    'xfsprogs', 'gdisk', 'lvm2', 'python-jinja2',
+    'xfsprogs', 'gdisk', 'lvm2', 'python-jinja2', 'python-psutil',
 ]
 
 TEMPLATES = 'templates/'
