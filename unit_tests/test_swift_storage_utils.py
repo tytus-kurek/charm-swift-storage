@@ -63,6 +63,7 @@ SCRIPT_RC_ENV = {
 
 
 class SwiftStorageUtilsTests(CharmTestCase):
+
     def setUp(self):
         super(SwiftStorageUtilsTests, self).setUp(swift_utils, TO_PATCH)
         self.config.side_effect = self.test_config.get
@@ -92,7 +93,7 @@ class SwiftStorageUtilsTests(CharmTestCase):
         wgets = []
         for s in ['account', 'object', 'container']:
             _c = call(['wget', '%s/%s.ring.gz' % (url, s),
-                      '-O', '/etc/swift/%s.ring.gz' % s])
+                       '-O', '/etc/swift/%s.ring.gz' % s])
             wgets.append(_c)
         self.assertEquals(wgets, self.check_call.call_args_list)
 
