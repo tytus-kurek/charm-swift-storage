@@ -40,6 +40,7 @@ TO_PATCH = [
 
 
 class SwiftStorageRelationsTests(CharmTestCase):
+
     def setUp(self):
         super(SwiftStorageRelationsTests, self).setUp(hooks,
                                                       TO_PATCH)

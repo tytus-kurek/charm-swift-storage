@@ -49,4 +49,17 @@ options:
     default: 6002
     type: int
     description: Listening port of the swift-account-server.
-
+  worker-multiplier:
+    default: 1
+    type: int
+    description: |
+      The CPU multiplier to use when configuring worker processes for the
+      account, container and object server processes.
+  object-server-threads-per-disk:
+    default: 4
+    type: int
+    description: |
+      Size of the per-disk thread pool used for performing disk I/O. 0 means
+      to not use a per-disk thread pool. It is recommended to keep this value
+      small, as large values can result in high read latencies due to large
+      queue depths. A good starting point is 4 threads per disk.

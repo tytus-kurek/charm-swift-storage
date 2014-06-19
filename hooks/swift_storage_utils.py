@@ -48,7 +48,7 @@ from charmhelpers.contrib.openstack import (
 
 PACKAGES = [
     'swift', 'swift-account', 'swift-container', 'swift-object',
-    'xfsprogs', 'gdisk', 'lvm2', 'python-jinja2',
+    'xfsprogs', 'gdisk', 'lvm2', 'python-jinja2', 'python-psutil',
 ]
 
 TEMPLATES = 'templates/'
@@ -166,7 +166,8 @@ def determine_block_devices():
 
     # attempt to ensure block devices, but filter out missing devs
     _none = ['None', 'none', None]
-    valid_bdevs = [x for x in map(ensure_block_device, bdevs) if x not in _none]
+    valid_bdevs = \
+        [x for x in map(ensure_block_device, bdevs) if x not in _none]
     log('Valid ensured block devices: %s' % valid_bdevs)
     return valid_bdevs
 
