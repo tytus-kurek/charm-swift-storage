@@ -88,7 +88,7 @@ def ensure_swift_directories():
         '/var/cache/swift',
         '/srv/node',
     ]
-    [mkdir(d, owner='swift', group='swift') for d in dirs
+    [mkdir(d, owner='swift', group='swift', perms=0755) for d in dirs
      if not os.path.isdir(d)]
 
 
