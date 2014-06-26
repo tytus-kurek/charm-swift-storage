@@ -86,11 +86,13 @@ def ensure_swift_directories():
     dirs = [
         '/etc/swift',
         '/var/cache/swift',
-        '/srv/node',
     ]
-    [mkdir(d, owner='swift', group='swift', perms=0755) for d in dirs
+    [mkdir(d, owner='swift', group='swift') for d in dirs
      if not os.path.isdir(d)]
 
+    mountpoints = '/srv/node'
+    if not os.path.isdir(mountpoints)
+        mkdir(mountpoints, owner='swift', group='swift', perms=0755) 
 
 def register_configs():
     release = get_os_codename_package('python-swift', fatal=False) or 'essex'
