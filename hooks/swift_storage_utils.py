@@ -191,7 +191,7 @@ def setup_storage():
         mount(dev, '/srv/node/%s' % _dev, persist=True,
               filesystem="xfs")
     check_call(['chown', '-R', 'swift:swift', '/srv/node/'])
-    check_call(['chmod', '-R', '0750', '/srv/node/'])
+    check_call(['chmod', '-R', '0755', '/srv/node/'])
 
 
 def fetch_swift_rings(rings_url):
