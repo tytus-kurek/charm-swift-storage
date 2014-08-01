@@ -86,11 +86,13 @@ def ensure_swift_directories():
     dirs = [
         '/etc/swift',
         '/var/cache/swift',
-        '/srv/node',
     ]
     [mkdir(d, owner='swift', group='swift') for d in dirs
      if not os.path.isdir(d)]
 
+    mountpoints = '/srv/node'
+    if not os.path.isdir(mountpoints)
+        mkdir(mountpoints, owner='swift', group='swift', perms=0755) 
 
 def register_configs():
     release = get_os_codename_package('python-swift', fatal=False) or 'essex'
@@ -189,7 +191,7 @@ def setup_storage():
         mount(dev, '/srv/node/%s' % _dev, persist=True,
               filesystem="xfs")
     check_call(['chown', '-R', 'swift:swift', '/srv/node/'])
-    check_call(['chmod', '-R', '0750', '/srv/node/'])
+    check_call(['chmod', '-R', '0755', '/srv/node/'])
 
 
 def fetch_swift_rings(rings_url):
