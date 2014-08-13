@@ -31,6 +31,9 @@ from charmhelpers.contrib.openstack.utils import (
     configure_installation_source,
     openstack_upgrade_available,
 )
+from charmhelpers.contrib.network.ip import (
+    get_ipv6_addr,
+)
 
 hooks = Hooks()
 CONFIGS = register_configs()
@@ -65,6 +68,10 @@ def swift_storage_relation_joined():
         'account_port': config('account-server-port'),
         'device': ':'.join(devs),
     }
+
+    if config('prefer-ipv6'):
+        rel_settings['private-address'] = get_ipv6_addr()
+
     relation_set(**rel_settings)
 
 

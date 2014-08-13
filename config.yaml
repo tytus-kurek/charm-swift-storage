@@ -63,3 +63,7 @@ options:
       to not use a per-disk thread pool. It is recommended to keep this value
       small, as large values can result in high read latencies due to large
       queue depths. A good starting point is 4 threads per disk.
+  prefer-ipv6:
+    type: boolean
+    default: false
+    description: "Enable IPv6."
