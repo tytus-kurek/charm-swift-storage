@@ -53,7 +53,7 @@ class RsyncContext(OSContextGenerator):
 
     def __call__(self):
         if config('prefer-ipv6'):
-            local_ip = '%s' % get_ip_addr()
+            local_ip = '%s' % get_ipv6_addr()
         else:
             local_ip = unit_private_ip()
 
@@ -70,7 +70,7 @@ class SwiftStorageServerContext(OSContextGenerator):
         import psutil
         multiplier = int(config('worker-multiplier')) or 1
         if config('prefer-ipv6'):
-            host_ip = '%s' % get_ip_addr()
+            host_ip = '%s' % get_ipv6_addr()
         else:
             host_ip = '0.0.0.0'
 
