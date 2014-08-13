@@ -198,7 +198,8 @@ def fetch_swift_rings(rings_url):
     for server in ['account', 'object', 'container']:
         url = '%s/%s.ring.gz' % (rings_url, server)
         log('Fetching %s.' % url)
-        cmd = ['wget', url, '-O', '/etc/swift/%s.ring.gz' % server]
+        cmd = ['wget', url, '--retry-connrefused',
+               '-t', '10', '-O', '/etc/swift/%s.ring.gz' % server]
         check_call(cmd)
 
 
