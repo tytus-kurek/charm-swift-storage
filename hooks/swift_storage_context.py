@@ -13,7 +13,9 @@ from charmhelpers.contrib.openstack.context import (
     OSContextGenerator,
 )
 
-
+from charmhelpers.contrib.network.ip import (
+    get_ipv6_addr,
+)
 class SwiftStorageContext(OSContextGenerator):
     interfaces = ['swift-storage']
 
@@ -50,7 +52,11 @@ class RsyncContext(OSContextGenerator):
                 out.write(_m.sub('RSYNC_ENABLE=true', default))
 
     def __call__(self):
-        local_ip = unit_private_ip()
+        if config('prefer-ipv6'):
+            local_ip = '%s' % get_ip_addr()
+        else:
+            local_ip = unit_private_ip()
+
         self.enable_rsyncd()
         return {
             'local_ip': local_ip
@@ -63,6 +69,11 @@ class SwiftStorageServerContext(OSContextGenerator):
     def __call__(self):
         import psutil
         multiplier = int(config('worker-multiplier')) or 1
+        if config('prefer-ipv6'):
+            host_ip = '%s' % get_ip_addr()
+        else:
+            host_ip = '0.0.0.0'
+
         ctxt = {
             'local_ip': unit_private_ip(),
             'account_server_port': config('account-server-port'),
@@ -71,5 +82,6 @@ class SwiftStorageServerContext(OSContextGenerator):
             'workers': str(psutil.NUM_CPUS * multiplier),
             'object_server_threads_per_disk': config(
                 'object-server-threads-per-disk'),
+            'host_ip': host_ip,
         }
         return ctxt
