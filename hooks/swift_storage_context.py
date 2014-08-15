@@ -70,9 +70,9 @@ class SwiftStorageServerContext(OSContextGenerator):
         import psutil
         multiplier = int(config('worker-multiplier')) or 1
         if config('prefer-ipv6'):
-            host_ip = '%s' % get_ipv6_addr()
+            bind_ip = '::'
         else:
-            host_ip = '0.0.0.0'
+            bind_ip = '0.0.0.0'
 
         ctxt = {
             'local_ip': unit_private_ip(),
@@ -82,6 +82,6 @@ class SwiftStorageServerContext(OSContextGenerator):
             'workers': str(psutil.NUM_CPUS * multiplier),
             'object_server_threads_per_disk': config(
                 'object-server-threads-per-disk'),
-            'host_ip': host_ip,
+            'bind_ip': bind_ip,
         }
         return ctxt
