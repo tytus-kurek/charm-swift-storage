@@ -63,3 +63,23 @@ options:
       to not use a per-disk thread pool. It is recommended to keep this value
       small, as large values can result in high read latencies due to large
       queue depths. A good starting point is 4 threads per disk.
+  account-max-connections:
+    default: 2
+    type: int
+    description: |
+      Number of connections allowed to the account rsync stanza.
+  container-max-connections:
+    default: 2
+    type: int
+    description: |
+      Number of connections allowed to the container rsync stanza.
+  object-max-connections:
+    default: 2
+    type: int
+    description: |
+      Number of connections allowed to the object rsync stanza.
+  object-replicator-concurrency:
+    default: 1
+    type: int
+    description: |
+      Number of replication workers to spawn.
