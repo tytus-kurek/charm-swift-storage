@@ -383,6 +383,9 @@ class SwiftStorageBasicDeployment(OpenStackAmuletDeployment):
                 'use': 'egg:swift#object',
                 'threads_per_disk': '4'
             }
+            'object-replicator': {
+                'concurrency': '1'
+            }
         }
 
         for section, pairs in expected.iteritems():

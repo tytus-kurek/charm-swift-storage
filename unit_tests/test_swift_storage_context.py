@@ -64,6 +64,7 @@ class SwiftStorageContextTests(CharmTestCase):
         self.test_config.set('container-server-port', '502')
         self.test_config.set('object-server-threads-per-disk', '3')
         self.test_config.set('worker-multiplier', '3')
+        self.test_config.set('object-replicator-concurrency', '3')
         num_workers = psutil.NUM_CPUS * 3
         ctxt = swift_context.SwiftStorageServerContext()
         result = ctxt()
@@ -74,5 +75,6 @@ class SwiftStorageContextTests(CharmTestCase):
             'local_ip': '10.0.0.5',
             'object_server_threads_per_disk': '3',
             'workers': str(num_workers),
+            'object_replicator_concurrency': '3',
         }
         self.assertEquals(ex, result)

@@ -71,5 +71,10 @@ class SwiftStorageServerContext(OSContextGenerator):
             'workers': str(psutil.NUM_CPUS * multiplier),
             'object_server_threads_per_disk': config(
                 'object-server-threads-per-disk'),
+            'account_max_connections': config('account-max-connections'),
+            'container_max_connections': config('container-max-connections'),
+            'object_max_connections': config('object-max-connections'),
+            'object_replicator_concurrency': config(
+                'object-replicator-concurrency'),
         }
         return ctxt
