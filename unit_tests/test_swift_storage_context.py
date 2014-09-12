@@ -76,5 +76,8 @@ class SwiftStorageContextTests(CharmTestCase):
             'object_server_threads_per_disk': '3',
             'workers': str(num_workers),
             'object_replicator_concurrency': '3',
+            'account_max_connections': 2,
+            'container_max_connections': 2,
+            'object_max_connections': 2,
         }
         self.assertEquals(ex, result)
