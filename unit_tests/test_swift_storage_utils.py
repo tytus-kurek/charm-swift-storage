@@ -93,6 +93,7 @@ class SwiftStorageUtilsTests(CharmTestCase):
         wgets = []
         for s in ['account', 'object', 'container']:
             _c = call(['wget', '%s/%s.ring.gz' % (url, s),
+                       '--retry-connrefused', '-t', '10',
                        '-O', '/etc/swift/%s.ring.gz' % s])
             wgets.append(_c)
         self.assertEquals(wgets, self.check_call.call_args_list)
