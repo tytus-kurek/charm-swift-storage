@@ -16,12 +16,16 @@ from swift_storage_context import (
     RsyncContext,
 )
 
-from charmhelpers.fetch import apt_upgrade, apt_update
+from charmhelpers.fetch import (
+    apt_upgrade,
+    apt_update
+)
 
 from charmhelpers.core.host import (
     mkdir,
     mount,
     service_restart,
+    lsb_release
 )
 
 from charmhelpers.core.hookenv import (
@@ -216,3 +220,10 @@ def save_script_rc():
             'OPENSTACK_URL_%s' % svc: url,
         })
     _save_script_rc(**env_vars)
+
+
+def setup_ipv6():
+    ubuntu_rel = float(lsb_release()['DISTRIB_RELEASE'])
+    if ubuntu_rel < 14.04:
+        raise Exception("IPv6 is not supported for Ubuntu "
+                        "versions less than Trusty 14.04")
