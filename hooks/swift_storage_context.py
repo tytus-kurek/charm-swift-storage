@@ -16,6 +16,8 @@ from charmhelpers.contrib.openstack.context import (
 from charmhelpers.contrib.network.ip import (
     get_ipv6_addr,
 )
+
+
 class SwiftStorageContext(OSContextGenerator):
     interfaces = ['swift-storage']
 
