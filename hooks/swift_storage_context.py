@@ -55,7 +55,7 @@ class RsyncContext(OSContextGenerator):
 
     def __call__(self):
         if config('prefer-ipv6'):
-            local_ip = '%s' % get_ipv6_addr()
+            local_ip = '%s' % get_ipv6_addr()[0]
         else:
             local_ip = unit_private_ip()
 

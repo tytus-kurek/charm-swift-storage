@@ -77,7 +77,7 @@ def swift_storage_relation_joined():
     }
 
     if config('prefer-ipv6'):
-        rel_settings['private-address'] = get_ipv6_addr()
+        rel_settings['private-address'] = get_ipv6_addr()[0]
 
     relation_set(**rel_settings)
 
