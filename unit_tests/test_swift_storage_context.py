@@ -68,6 +68,7 @@ class SwiftStorageContextTests(CharmTestCase):
         ctxt = swift_context.SwiftStorageServerContext()
         result = ctxt()
         ex = {
+            'bind_ip': '0.0.0.0',
             'container_server_port': '502',
             'object_server_port': '501',
             'account_server_port': '500',
