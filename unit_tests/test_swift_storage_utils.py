@@ -194,15 +194,18 @@ class SwiftStorageUtilsTests(CharmTestCase):
         renderer.assert_called_with(templates_dir=swift_utils.TEMPLATES,
                                     openstack_release='essex')
 
+    @patch('charmhelpers.contrib.openstack.context.BindHostContext')
     @patch.object(swift_utils, 'SwiftStorageContext')
     @patch.object(swift_utils, 'RsyncContext')
     @patch.object(swift_utils, 'SwiftStorageServerContext')
     @patch('charmhelpers.contrib.openstack.templating.OSConfigRenderer')
     def test_register_configs_post_install(self, renderer,
-                                           swift, rsync, server):
+                                           swift, rsync, server,
+                                           bind_context):
         swift.return_value = 'swift_context'
         rsync.return_value = 'rsync_context'
         server.return_value = 'swift_server_context'
+        bind_context.return_value = 'bind_host_context'
         self.get_os_codename_package.return_value = 'grizzly'
         configs = MagicMock()
         configs.register = MagicMock()
@@ -213,9 +216,12 @@ class SwiftStorageUtilsTests(CharmTestCase):
         ex = [
             call('/etc/swift/swift.conf', ['swift_server_context']),
             call('/etc/rsyncd.conf', ['rsync_context']),
-            call('/etc/swift/account-server.conf', ['swift_context']),
-            call('/etc/swift/object-server.conf', ['swift_context']),
-            call('/etc/swift/container-server.conf', ['swift_context'])
+            call('/etc/swift/account-server.conf', ['swift_context',
+                                                    'bind_host_context']),
+            call('/etc/swift/object-server.conf', ['swift_context',
+                                                   'bind_host_context']),
+            call('/etc/swift/container-server.conf', ['swift_context',
+                                                      'bind_host_context'])
         ]
         self.assertEquals(ex, configs.register.call_args_list)
 

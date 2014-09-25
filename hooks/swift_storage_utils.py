@@ -48,6 +48,7 @@ from charmhelpers.contrib.openstack.utils import (
 
 from charmhelpers.contrib.openstack import (
     templating,
+    context
 )
 
 PACKAGES = [
@@ -106,7 +107,8 @@ def register_configs():
                      [RsyncContext()])
     for server in ['account', 'object', 'container']:
         configs.register('/etc/swift/%s-server.conf' % server,
-                         [SwiftStorageServerContext()]),
+                         [SwiftStorageServerContext(),
+                          context.BindHostContext()]),
     return configs
 
 
