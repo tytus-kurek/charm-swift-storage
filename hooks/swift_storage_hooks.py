@@ -13,7 +13,7 @@ from swift_storage_utils import (
     register_configs,
     save_script_rc,
     setup_storage,
-    setup_ipv6
+    assert_charm_supports_ipv6
 )
 
 from charmhelpers.core.hookenv import (
@@ -43,7 +43,7 @@ CONFIGS = register_configs()
 @hooks.hook()
 def install():
     if config('prefer-ipv6'):
-        setup_ipv6()
+        assert_charm_supports_ipv6()
 
     execd_preinstall()
     configure_installation_source(config('openstack-origin'))
@@ -57,7 +57,7 @@ def install():
 @restart_on_change(RESTART_MAP)
 def config_changed():
     if config('prefer-ipv6'):
-        setup_ipv6()
+        assert_charm_supports_ipv6()
 
     if openstack_upgrade_available('swift'):
         do_openstack_upgrade(configs=CONFIGS)
