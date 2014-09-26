@@ -224,8 +224,8 @@ def save_script_rc():
     _save_script_rc(**env_vars)
 
 
-def setup_ipv6():
-    ubuntu_rel = float(lsb_release()['DISTRIB_RELEASE'])
-    if ubuntu_rel < 14.04:
-        raise Exception("IPv6 is not supported for Ubuntu "
+def assert_charm_supports_ipv6():
+    """Check whether we are able to support charms ipv6."""
+    if lsb_release()['DISTRIB_CODENAME'].lower() < "trusty":
+        raise Exception("IPv6 is not supported in the charms for Ubuntu "
                         "versions less than Trusty 14.04")
