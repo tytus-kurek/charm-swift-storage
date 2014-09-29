@@ -20,10 +20,10 @@ u = OpenStackAmuletUtils(ERROR)
 class SwiftStorageBasicDeployment(OpenStackAmuletDeployment):
     """Amulet tests on a basic swift-storage deployment."""
 
-    def __init__(self, series, openstack=None, source=None):
+    def __init__(self, series, openstack=None, source=None, stable=False):
         """Deploy the entire test environment."""
         super(SwiftStorageBasicDeployment, self).__init__(series, openstack,
-                                                          source)
+                                                          source, stable)
         self._add_services()
         self._add_relations()
         self._configure_services()
@@ -31,12 +31,15 @@ class SwiftStorageBasicDeployment(OpenStackAmuletDeployment):
         self._initialize_tests()
 
     def _add_services(self):
-        """Add the service that we're testing, including the number of units,
-           where swift-storage is local, and the other charms are from
-           the charm store."""
-        this_service = ('swift-storage', 1)
-        other_services = [('mysql', 1),
-                          ('keystone', 1), ('glance', 1), ('swift-proxy', 1)]
+        """Add services
+
+           Add the services that we're testing, where swift-storage is local,
+           and the rest of the service are from lp branches that are
+           compatible with the local charm (e.g. stable or next).
+           """
+        this_service = {'name': 'swift-storage'}
+        other_services = [{'name': 'mysql'}, {'name': 'keystone'},
+                          {'name': 'glance'}, {'name': 'swift-proxy'}]
         super(SwiftStorageBasicDeployment, self)._add_services(this_service,
                                                                other_services)
 
@@ -249,9 +252,14 @@ class SwiftStorageBasicDeployment(OpenStackAmuletDeployment):
             message = u.relation_error('swift-proxy swift-storage', ret)
             amulet.raise_status(amulet.FAIL, msg=message)
 
-    def test_restart_on_config_change(self):
+    def test_z_restart_on_config_change(self):
         """Verify that the specified services are restarted when the config
-           is changed."""
+           is changed.
+
+           Note(coreycb): The method name with the _z_ is a little odd
+           but it forces the test to run last.  It just makes things
+           easier because restarting services requires re-authorization.
+           """
         # NOTE(coreycb): Skipping failing test on until resolved. This test
         #                fails because the config file's last mod time is
         #                slightly after the process' last mod time.
@@ -282,6 +290,8 @@ class SwiftStorageBasicDeployment(OpenStackAmuletDeployment):
             config = '/etc/swift/{}'.format(conf)
             if not u.service_restarted(self.swift_storage_sentry, s, config,
                                        pgrep_full=True, sleep_time=time):
+                self.d.configure('swift-storage',
+                                 {'object-server-threads-per-disk': '4'})
                 msg = "service {} didn't restart after config change".format(s)
                 amulet.raise_status(amulet.FAIL, msg=msg)
             time = 0
