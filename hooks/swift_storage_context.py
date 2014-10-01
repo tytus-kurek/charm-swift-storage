@@ -13,6 +13,10 @@ from charmhelpers.contrib.openstack.context import (
     OSContextGenerator,
 )
 
+from charmhelpers.contrib.network.ip import (
+    get_ipv6_addr,
+)
+
 
 class SwiftStorageContext(OSContextGenerator):
     interfaces = ['swift-storage']
@@ -50,7 +54,11 @@ class RsyncContext(OSContextGenerator):
                 out.write(_m.sub('RSYNC_ENABLE=true', default))
 
     def __call__(self):
-        local_ip = unit_private_ip()
+        if config('prefer-ipv6'):
+            local_ip = '%s' % get_ipv6_addr()[0]
+        else:
+            local_ip = unit_private_ip()
+
         self.enable_rsyncd()
         return {
             'local_ip': local_ip

@@ -16,12 +16,16 @@ from swift_storage_context import (
     RsyncContext,
 )
 
-from charmhelpers.fetch import apt_upgrade, apt_update
+from charmhelpers.fetch import (
+    apt_upgrade,
+    apt_update
+)
 
 from charmhelpers.core.host import (
     mkdir,
     mount,
     service_restart,
+    lsb_release
 )
 
 from charmhelpers.core.hookenv import (
@@ -44,6 +48,7 @@ from charmhelpers.contrib.openstack.utils import (
 
 from charmhelpers.contrib.openstack import (
     templating,
+    context
 )
 
 PACKAGES = [
@@ -102,7 +107,8 @@ def register_configs():
                      [RsyncContext()])
     for server in ['account', 'object', 'container']:
         configs.register('/etc/swift/%s-server.conf' % server,
-                         [SwiftStorageServerContext()]),
+                         [SwiftStorageServerContext(),
+                          context.BindHostContext()]),
     return configs
 
 
@@ -216,3 +222,10 @@ def save_script_rc():
             'OPENSTACK_URL_%s' % svc: url,
         })
     _save_script_rc(**env_vars)
+
+
+def assert_charm_supports_ipv6():
+    """Check whether we are able to support charms ipv6."""
+    if lsb_release()['DISTRIB_CODENAME'].lower() < "trusty":
+        raise Exception("IPv6 is not supported in the charms for Ubuntu "
+                        "versions less than Trusty 14.04")
