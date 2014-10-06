@@ -75,3 +75,23 @@ options:
       order for this charm to function correctly, the privacy extension must be
       disabled and a non-temporary address must be configured/available on
       your network interface.
+  account-max-connections:
+    default: 2
+    type: int
+    description: |
+      Number of connections allowed to the account rsync stanza.
+  container-max-connections:
+    default: 2
+    type: int
+    description: |
+      Number of connections allowed to the container rsync stanza.
+  object-max-connections:
+    default: 2
+    type: int
+    description: |
+      Number of connections allowed to the object rsync stanza.
+  object-replicator-concurrency:
+    default: 1
+    type: int
+    description: |
+      Number of replication workers to spawn.
