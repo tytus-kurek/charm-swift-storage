@@ -24,7 +24,11 @@ from charmhelpers.core.hookenv import (
     relation_set,
 )
 
-from charmhelpers.fetch import apt_install, apt_update
+from charmhelpers.fetch import (
+    apt_install,
+    apt_update,
+    filter_installed_packages
+)
 from charmhelpers.core.host import restart_on_change
 from charmhelpers.payload.execd import execd_preinstall
 
@@ -60,6 +64,11 @@ def config_changed():
         do_openstack_upgrade(configs=CONFIGS)
     CONFIGS.write_all()
     save_script_rc()
+
+
+@hooks.hook('upgrade-charm')
+def upgrade_charm():
+    apt_install(filter_installed_packages(PACKAGES), fatal=True)
 
 
 @hooks.hook()
