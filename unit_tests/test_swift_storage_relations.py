@@ -24,6 +24,7 @@ TO_PATCH = [
     # charmhelpers.core.host
     'apt_update',
     'apt_install',
+    'filter_installed_packages',
     # charmehelpers.contrib.openstack.utils
     'configure_installation_source',
     'openstack_upgrade_available',
@@ -70,6 +71,11 @@ class SwiftStorageRelationsTests(CharmTestCase):
         hooks.config_changed()
         self.assertTrue(self.do_openstack_upgrade.called)
         self.assertTrue(self.CONFIGS.write_all.called)
+
+    def test_upgrade_charm(self):
+        self.filter_installed_packages.return_value = ['python-psutil']
+        hooks.upgrade_charm()
+        self.apt_install.assert_called_with(['python-psutil'], fatal=True)
 
     def test_storage_joined_single_device(self):
         self.determine_block_devices.return_value = ['/dev/vdb']
