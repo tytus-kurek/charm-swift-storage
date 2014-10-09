@@ -61,8 +61,7 @@ class SwiftStorageBasicDeployment(OpenStackAmuletDeployment):
                            'admin-token': 'ubuntutesting'}
         swift_proxy_config = {'zone-assignment': 'manual',
                            'replicas': '1',
-                           'swift-hash': 'fdfef9d4-8b06-11e2-8ac0-531c923c8fae',
-                           'use-https': 'no'}
+                           'swift-hash': 'fdfef9d4-8b06-11e2-8ac0-531c923c8fae'}
         swift_storage_config = {'zone': '1',
                                 'block-device': 'vdb',
                                 'overwrite': 'true'}
@@ -392,7 +391,7 @@ class SwiftStorageBasicDeployment(OpenStackAmuletDeployment):
             'app:object-server': {
                 'use': 'egg:swift#object',
                 'threads_per_disk': '4'
-            }
+            },
             'object-replicator': {
                 'concurrency': '1'
             }
