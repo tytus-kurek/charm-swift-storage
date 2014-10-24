@@ -67,8 +67,8 @@ REAL_WORLD_PARTITIONS = """
 major minor  #blocks  name
 
    8        0  117220824 sda
-   8        1  117219800 sda1
-   8       16  119454720 sdb
+   8        1  117219800 sdb
+   8       16  119454720 sdb1
 """
 
 
@@ -201,14 +201,14 @@ class SwiftStorageUtilsTests(CharmTestCase):
 
     def test_find_block_devices_real_world(self):
         self.is_block_device.return_value = True
-        side_effect = lambda x: x in ["/dev/sda", "/dev/sda1"]
+        side_effect = lambda x: x in ["/dev/sdb", "/dev/sdb1"]
         self.is_device_mounted.side_effect = side_effect
         with patch_open() as (_open, _file):
             _file.read.return_value = REAL_WORLD_PARTITIONS
             _file.readlines = MagicMock()
             _file.readlines.return_value = REAL_WORLD_PARTITIONS.split('\n')
             result = swift_utils.find_block_devices()
-        expected = ["/dev/sdb"]
+        expected = ["/dev/sda"]
         self.assertEquals(expected, result)
 
     def test_save_script_rc(self):
