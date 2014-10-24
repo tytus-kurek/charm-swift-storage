@@ -17,6 +17,7 @@ TO_PATCH = [
     'ensure_block_device',
     'clean_storage',
     'is_block_device',
+    'is_device_mounted',
     'get_os_codename_package',
     'get_os_codename_install_source',
     'unit_private_ip',
@@ -60,6 +61,15 @@ SCRIPT_RC_ENV = {
     'OPENSTACK_URL_OBJECT':
     'http://10.0.0.1:6000/recon/diskusage|"mounted":true'
 }
+
+
+REAL_WORLD_PARTITIONS = """
+major minor  #blocks  name
+
+   8        0  117220824 sda
+   8        1  117219800 sda1
+   8       16  119454720 sdb
+"""
 
 
 class SwiftStorageUtilsTests(CharmTestCase):
@@ -172,8 +182,15 @@ class SwiftStorageUtilsTests(CharmTestCase):
                                       group='swift')
         self.mount.assert_called('/dev/vdb', '/srv/node/vdb', persist=True)
 
+    def _fake_is_device_mounted(self, device):
+        if device in ["/dev/sda", "/dev/vda", "/dev/cciss/c0d0"]:
+            return True
+        else:
+            return False
+
     def test_find_block_devices(self):
         self.is_block_device.return_value = True
+        self.is_device_mounted.side_effect = self._fake_is_device_mounted
         with patch_open() as (_open, _file):
             _file.read.return_value = PROC_PARTITIONS
             _file.readlines = MagicMock()
@@ -181,6 +198,18 @@ class SwiftStorageUtilsTests(CharmTestCase):
             result = swift_utils.find_block_devices()
         ex = ['/dev/sdb', '/dev/vdb', '/dev/cciss/c1d0']
         self.assertEquals(ex, result)
+
+    def test_find_block_devices_real_world(self):
+        self.is_block_device.return_value = True
+        side_effect = lambda x: x in ["/dev/sda", "/dev/sda1"]
+        self.is_device_mounted.side_effect = side_effect
+        with patch_open() as (_open, _file):
+            _file.read.return_value = REAL_WORLD_PARTITIONS
+            _file.readlines = MagicMock()
+            _file.readlines.return_value = REAL_WORLD_PARTITIONS.split('\n')
+            result = swift_utils.find_block_devices()
+        expected = ["/dev/sdb"]
+        self.assertEquals(expected, result)
 
     def test_save_script_rc(self):
         self.unit_private_ip.return_value = '10.0.0.1'
