@@ -37,6 +37,7 @@ from charmhelpers.core.hookenv import (
 
 from charmhelpers.contrib.storage.linux.utils import (
     is_block_device,
+    is_device_mounted,
 )
 
 from charmhelpers.contrib.openstack.utils import (
@@ -141,10 +142,17 @@ def do_openstack_upgrade(configs):
      (ACCOUNT_SVCS + CONTAINER_SVCS + OBJECT_SVCS)]
 
 
+def _is_storage_ready(partition):
+    """
+    A small helper to determine if a given device is suitabe to be used as
+    a storage device.
+    """
+    return is_block_device(partition) and not is_device_mounted(partition)
+
+
 def find_block_devices():
     found = []
     incl = ['sd[a-z]', 'vd[a-z]', 'cciss\/c[0-9]d[0-9]']
-    blacklist = ['sda', 'vda', 'cciss/c0d0']
 
     with open('/proc/partitions') as proc:
         print proc
@@ -152,9 +160,9 @@ def find_block_devices():
     for partition in [p[3] for p in partitions if p]:
         for inc in incl:
             _re = re.compile(r'^(%s)$' % inc)
-            if _re.match(partition) and partition not in blacklist:
+            if _re.match(partition):
                 found.append(os.path.join('/dev', partition))
-    return [f for f in found if is_block_device(f)]
+    return [f for f in found if _is_storage_ready(f)]
 
 
 def determine_block_devices():
