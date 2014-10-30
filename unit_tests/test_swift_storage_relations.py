@@ -1,6 +1,6 @@
 from mock import patch, MagicMock
 
-from test_utils import CharmTestCase
+from test_utils import CharmTestCase, patch_open
 
 import swift_storage_utils as utils
 
@@ -21,6 +21,7 @@ TO_PATCH = [
     'log',
     'relation_set',
     'relation_get',
+    'relations_of_type',
     # charmhelpers.core.host
     'apt_update',
     'apt_install',
@@ -62,13 +63,19 @@ class SwiftStorageRelationsTests(CharmTestCase):
 
     def test_config_changed_no_upgrade_available(self):
         self.openstack_upgrade_available.return_value = False
-        hooks.config_changed()
+        self.relations_of_type.return_value = False
+        with patch_open() as (_open, _file):
+            _file.read.return_value = "foo"
+            hooks.config_changed()
         self.assertFalse(self.do_openstack_upgrade.called)
         self.assertTrue(self.CONFIGS.write_all.called)
 
     def test_config_changed_upgrade_available(self):
         self.openstack_upgrade_available.return_value = True
-        hooks.config_changed()
+        self.relations_of_type.return_value = False
+        with patch_open() as (_open, _file):
+            _file.read.return_value = "foo"
+            hooks.config_changed()
         self.assertTrue(self.do_openstack_upgrade.called)
         self.assertTrue(self.CONFIGS.write_all.called)
 

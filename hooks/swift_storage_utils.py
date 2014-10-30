@@ -75,8 +75,25 @@ OBJECT_SVCS = [
     'swift-object-updater', 'swift-object-replicator'
 ]
 
+SWIFT_SVCS = [
+    'account-auditor',
+    'account-reaper',
+    'account-replicator',
+    'account-server',
+    'container-auditor',
+    'container-replicator',
+    'container-server',
+    'container-sync',
+    'container-updater',
+    'object-auditor',
+    'object-replicator',
+    'object-server',
+    'object-updater',
+    ]
+
 RESTART_MAP = {
-    '/etc/rsyncd.conf': ['rsync'],
+    '/etc/rsyncd.d/001-baseconfig': ['rsync'],
+    '/etc/rsyncd.d/050-swift-storage': ['rsync'],
     '/etc/swift/account-server.conf': ACCOUNT_SVCS,
     '/etc/swift/container-server.conf': CONTAINER_SVCS,
     '/etc/swift/object-server.conf': OBJECT_SVCS,
@@ -96,6 +113,11 @@ def ensure_swift_directories():
     ]
     [mkdir(d, owner='swift', group='swift') for d in dirs
      if not os.path.isdir(d)]
+    root_dirs = [
+        '/etc/rsyncd.d',
+    ]
+    [mkdir(d, owner='root', group='root') for d in root_dirs
+     if not os.path.isdir(d)]
 
 
 def register_configs():
@@ -104,8 +126,10 @@ def register_configs():
                                           openstack_release=release)
     configs.register('/etc/swift/swift.conf',
                      [SwiftStorageContext()])
-    configs.register('/etc/rsyncd.conf',
-                     [RsyncContext()])
+    configs.register('/etc/rsyncd.d/001-baseconfig',
+                     [RsyncContext(), SwiftStorageServerContext()])
+    configs.register('/etc/rsyncd.d/050-swift-storage',
+                     [RsyncContext(), SwiftStorageServerContext()])
     for server in ['account', 'object', 'container']:
         configs.register('/etc/swift/%s-server.conf' % server,
                          [SwiftStorageServerContext(),
@@ -237,3 +261,15 @@ def assert_charm_supports_ipv6():
     if lsb_release()['DISTRIB_CODENAME'].lower() < "trusty":
         raise Exception("IPv6 is not supported in the charms for Ubuntu "
                         "versions less than Trusty 14.04")
+
+
+def concat_rsync_fragments():
+    log('Concatenating rsyncd.d fragments')
+    rsyncd_dir = '/etc/rsyncd.d'
+    rsyncd_conf = ""
+    for filename in sorted(os.listdir(rsyncd_dir)):
+        with open(os.path.join(rsyncd_dir, filename), 'r') as fragment:
+            rsyncd_conf += fragment.read()
+    with open('/etc/rsyncd.conf', 'w') as f:
+        f.write(rsyncd_conf)
+

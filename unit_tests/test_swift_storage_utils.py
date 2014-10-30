@@ -85,6 +85,7 @@ class SwiftStorageUtilsTests(CharmTestCase):
             ex_dirs = [
                 call('/etc/swift', owner='swift', group='swift'),
                 call('/var/cache/swift', owner='swift', group='swift'),
+                call('/etc/rsyncd.d', owner='root', group='root'),
                 call('/srv/node', owner='swift', group='swift')
             ]
         self.assertEquals(ex_dirs, self.mkdir.call_args_list)

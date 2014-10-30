@@ -1,0 +1,1 @@
+nagios ALL=(swift) NOPASSWD:/usr/bin/swift-init status *
