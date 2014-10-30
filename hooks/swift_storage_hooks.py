@@ -85,7 +85,7 @@ def config_changed():
 
     # If basenode is not installed and managing rsyncd.conf, replicate
     # its core functionality. Otherwise concat files
-    if not os.path.exists('/etc/rsyncd.d/001-basenode'):
+    if not os.path.exists('/etc/rsyncd.d/001-baseconfig'):
         with open('/etc/rsyncd.d/001-baseconfig') as _in:
             rsync_header = _in.read()
         with open('/etc/rsyncd.d/050-swift-storage') as _in:
