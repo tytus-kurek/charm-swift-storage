@@ -1,0 +1,7 @@
+uid = nobody
+gid = nogroup
+pid file = /var/run/rsyncd.pid
+syslog facility = daemon
+socket options = SO_KEEPALIVE
+address = {{ local_ip }}
+
