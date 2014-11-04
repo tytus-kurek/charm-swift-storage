@@ -23,6 +23,7 @@ from charmhelpers.core.hookenv import (
     relation_get,
     relation_set,
     relations_of_type,
+    local_unit,
 )
 
 from charmhelpers.fetch import (
@@ -153,12 +154,16 @@ def update_nrpe_config():
     for rel in relations_of_type('nrpe-external-master'):
         if 'nagios_hostname' in rel:
             hostname = rel['nagios_hostname']
+            host_context = rel['nagios_host_context']
             break
     nrpe = NRPE(hostname=hostname)
+
+    current_unit = "%s:%s" % (host_context, local_unit())
+
     # check the rings and replication
     nrpe.add_check(
         shortname='swift_storage',
-        description='Check swift storage ring hashes and replication',
+        description='Check swift storage ring hashes and replication {%s}' % current_unit,
         check_cmd='check_swift_storage.py {}'.format(
             config('nagios-check-params'))
     )
@@ -166,7 +171,7 @@ def update_nrpe_config():
     for service in SWIFT_SVCS:
         nrpe.add_check(
             shortname=service,
-            description='swift-storage %s service' % service,
+            description='service {%s}' % current_unit,
             check_cmd = 'check_swift_service %s' % service,
             )
     nrpe.write()
