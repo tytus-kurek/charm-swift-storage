@@ -92,8 +92,7 @@ SWIFT_SVCS = [
     ]
 
 RESTART_MAP = {
-    '/etc/rsyncd.d/001-baseconfig': ['rsync'],
-    '/etc/rsyncd.d/050-swift-storage': ['rsync'],
+    '/etc/rsync-juju.d/050-swift-storage.conf': ['rsync'],
     '/etc/swift/account-server.conf': ACCOUNT_SVCS,
     '/etc/swift/container-server.conf': CONTAINER_SVCS,
     '/etc/swift/object-server.conf': OBJECT_SVCS,
@@ -113,11 +112,6 @@ def ensure_swift_directories():
     ]
     [mkdir(d, owner='swift', group='swift') for d in dirs
      if not os.path.isdir(d)]
-    root_dirs = [
-        '/etc/rsyncd.d',
-    ]
-    [mkdir(d, owner='root', group='root') for d in root_dirs
-     if not os.path.isdir(d)]
 
 
 def register_configs():
@@ -126,9 +120,7 @@ def register_configs():
                                           openstack_release=release)
     configs.register('/etc/swift/swift.conf',
                      [SwiftStorageContext()])
-    configs.register('/etc/rsyncd.d/001-baseconfig',
-                     [RsyncContext(), SwiftStorageServerContext()])
-    configs.register('/etc/rsyncd.d/050-swift-storage',
+    configs.register('/etc/rsync-juju.d/050-swift-storage.conf',
                      [RsyncContext(), SwiftStorageServerContext()])
     for server in ['account', 'object', 'container']:
         configs.register('/etc/swift/%s-server.conf' % server,
