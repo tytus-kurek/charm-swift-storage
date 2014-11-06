@@ -56,6 +56,10 @@ from swift_storage_utils import (
 )
 from charmhelpers.contrib.charmsupport.nrpe import NRPE
 
+from charmhelpers.contrib.charmsupport.rsync import setup_rsync
+
+from distutils.dir_util import mkpath
+
 hooks = Hooks()
 CONFIGS = register_configs()
 NAGIOS_PLUGINS = '/usr/local/lib/nagios/plugins'
@@ -79,22 +83,11 @@ def config_changed():
         assert_charm_supports_ipv6()
 
     ensure_swift_directories()
+    setup_rsync()
 
     if openstack_upgrade_available('swift'):
         do_openstack_upgrade(configs=CONFIGS)
     CONFIGS.write_all()
-
-    # If basenode is not installed and managing rsyncd.conf, replicate
-    # its core functionality. Otherwise concat files
-    if not os.path.exists('/etc/rsyncd.d/001-baseconfig'):
-        with open('/etc/rsyncd.d/001-baseconfig') as _in:
-            rsync_header = _in.read()
-        with open('/etc/rsyncd.d/050-swift-storage') as _in:
-            rsync_fragment = _in.read()
-        with open('/etc/rsyncd.conf', 'w') as out:
-            out.write(rsync_header + rsync_fragment)
-    else:
-        concat_rsync_fragments()
 
     save_script_rc()
     if relations_of_type('nrpe-external-master'):
@@ -140,6 +133,8 @@ def swift_storage_relation_changed():
 @hooks.hook('nrpe-external-master-relation-changed')
 def update_nrpe_config():
     log('Refreshing nrpe checks')
+    if not os.path.exists(NAGIOS_PLUGINS):
+        mkpath(NAGIOS_PLUGINS)
     rsync(os.path.join(os.getenv('CHARM_DIR'), 'files', 'nrpe-external-master',
                        'check_swift_storage.py'),
           os.path.join(NAGIOS_PLUGINS, 'check_swift_storage.py'))
@@ -151,6 +146,7 @@ def update_nrpe_config():
           os.path.join(SUDOERS_D, 'swift-storage'))
     # Find out if nrpe set nagios_hostname
     hostname = None
+    host_context = None
     for rel in relations_of_type('nrpe-external-master'):
         if 'nagios_hostname' in rel:
             hostname = rel['nagios_hostname']
@@ -158,7 +154,10 @@ def update_nrpe_config():
             break
     nrpe = NRPE(hostname=hostname)
 
-    current_unit = "%s:%s" % (host_context, local_unit())
+    if host_context:
+        current_unit = "%s:%s" % (host_context, local_unit())
+    else:
+        current_unit = local_unit()
 
     # check the rings and replication
     nrpe.add_check(
