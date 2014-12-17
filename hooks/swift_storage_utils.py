@@ -56,6 +56,10 @@ from charmhelpers.contrib.openstack import (
     context
 )
 
+from charmhelpers.core.decorators import (
+    retry_on_exception,
+)
+
 PACKAGES = [
     'swift', 'swift-account', 'swift-container', 'swift-object',
     'xfsprogs', 'gdisk', 'lvm2', 'python-jinja2', 'python-psutil',
@@ -213,27 +217,7 @@ def setup_storage():
     check_call(['chmod', '-R', '0750', '/srv/node/'])
 
 
-def allow_retries(num_retries, interval=0, exc_type=Exception):
-    """If the decorated function raises exc_type allow num_retries retry
-    attempts before raising the exception.
-    """
-    def _allow_retries_inner_1(f):
-        def _allow_retries_inner_2(*args, **kwargs):
-            retries = num_retries
-            while True:
-                try:
-                    return f(*args, **kwargs)
-                except exc_type:
-                    retries -= 1
-                    if not retries:
-                        raise
-
-        return _allow_retries_inner_2
-
-    return _allow_retries_inner_1
-
-
-@allow_retries(3, interval=5, exc_type=CalledProcessError)
+@retry_on_exception(3, base_delay=2, exc_type=CalledProcessError)
 def fetch_swift_rings(rings_url):
     """Fetch rings from leader proxy unit.
 
