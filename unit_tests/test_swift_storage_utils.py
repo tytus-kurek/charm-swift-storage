@@ -1,3 +1,6 @@
+import shutil
+import tempfile
+
 from mock import call, patch, MagicMock
 from test_utils import CharmTestCase, patch_open
 
@@ -99,14 +102,18 @@ class SwiftStorageUtilsTests(CharmTestCase):
 
     def test_fetch_swift_rings(self):
         url = 'http://someproxynode/rings'
-        swift_utils.fetch_swift_rings(url)
-        wgets = []
-        for s in ['account', 'object', 'container']:
-            _c = call(['wget', '%s/%s.ring.gz' % (url, s),
-                       '--retry-connrefused', '-t', '10',
-                       '-O', '/etc/swift/%s.ring.gz' % s])
-            wgets.append(_c)
-        self.assertEquals(wgets, self.check_call.call_args_list)
+        swift_utils.SWIFT_CONF_DIR = tempfile.mkdtemp()
+        try:
+            swift_utils.fetch_swift_rings(url)
+            wgets = []
+            for s in ['account', 'object', 'container']:
+                _c = call(['wget', '%s/%s.ring.gz' % (url, s),
+                           '--retry-connrefused', '-t', '10',
+                           '-O', '/etc/swift/%s.ring.gz' % s])
+                wgets.append(_c)
+            self.assertEquals(wgets, self.check_call.call_args_list)
+        except:
+            shutil.rmtree(swift_utils.SWIFT_CONF_DIR)
 
     def test_determine_block_device_no_config(self):
         self.test_config.set('block-device', None)
