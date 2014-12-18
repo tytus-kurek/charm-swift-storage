@@ -1,7 +1,9 @@
-import re
 import os
+import re
+import shutil
+import tempfile
 
-from subprocess import check_call, call
+from subprocess import check_call, call, CalledProcessError
 
 # Stuff copied from cinder py charm, needs to go somewhere
 # common.
@@ -31,8 +33,10 @@ from charmhelpers.core.host import (
 from charmhelpers.core.hookenv import (
     config,
     log,
-    unit_private_ip,
+    DEBUG,
+    INFO,
     ERROR,
+    unit_private_ip,
 )
 
 from charmhelpers.contrib.storage.linux.utils import (
@@ -50,6 +54,10 @@ from charmhelpers.contrib.openstack.utils import (
 from charmhelpers.contrib.openstack import (
     templating,
     context
+)
+
+from charmhelpers.core.decorators import (
+    retry_on_exception,
 )
 
 PACKAGES = [
@@ -83,6 +91,9 @@ RESTART_MAP = {
     '/etc/swift/swift.conf': ACCOUNT_SVCS + CONTAINER_SVCS + OBJECT_SVCS
 }
 
+SWIFT_CONF_DIR = '/etc/swift'
+SWIFT_RING_EXT = 'ring.gz'
+
 
 def ensure_swift_directories():
     '''
@@ -90,7 +101,7 @@ def ensure_swift_directories():
     correct permissions.
     '''
     dirs = [
-        '/etc/swift',
+        SWIFT_CONF_DIR,
         '/var/cache/swift',
         '/srv/node',
     ]
@@ -206,15 +217,33 @@ def setup_storage():
     check_call(['chmod', '-R', '0750', '/srv/node/'])
 
 
+@retry_on_exception(3, base_delay=2, exc_type=CalledProcessError)
 def fetch_swift_rings(rings_url):
-    log('swift-storage-node: Fetching all swift rings from proxy @ %s.' %
-        rings_url)
-    for server in ['account', 'object', 'container']:
-        url = '%s/%s.ring.gz' % (rings_url, server)
-        log('Fetching %s.' % url)
-        cmd = ['wget', url, '--retry-connrefused',
-               '-t', '10', '-O', '/etc/swift/%s.ring.gz' % server]
-        check_call(cmd)
+    """Fetch rings from leader proxy unit.
+
+    Note that we support a number of retries if a fetch fails since we may
+    have hit the very small update window on the proxy side.
+    """
+    log('Fetching swift rings from proxy @ %s.' % rings_url, level=INFO)
+    target = SWIFT_CONF_DIR
+    tmpdir = tempfile.mkdtemp(prefix='swiftrings')
+    try:
+        synced = []
+        for server in ['account', 'object', 'container']:
+            url = '%s/%s.%s' % (rings_url, server, SWIFT_RING_EXT)
+            log('Fetching %s.' % url, level=DEBUG)
+            ring = '%s.%s' % (server, SWIFT_RING_EXT)
+            cmd = ['wget', url, '--retry-connrefused', '-t', '10', '-O',
+                   os.path.join(tmpdir, ring)]
+            check_call(cmd)
+            synced.append(ring)
+
+        # Once all have been successfully downloaded, move them to actual
+        # location.
+        for f in synced:
+            os.rename(os.path.join(tmpdir, f), os.path.join(target, f))
+    finally:
+        shutil.rmtree(tmpdir)
 
 
 def save_script_rc():
