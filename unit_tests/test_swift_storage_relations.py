@@ -33,11 +33,13 @@ TO_PATCH = [
     'determine_block_devices',
     'do_openstack_upgrade',
     'ensure_swift_directories',
+    'execd_preinstall',
     'fetch_swift_rings',
     'save_script_rc',
+    'setup_rsync',
     'setup_storage',
     'register_configs',
-    'execd_preinstall'
+    'update_nrpe_config'
 ]
 
 
@@ -69,6 +71,7 @@ class SwiftStorageRelationsTests(CharmTestCase):
             hooks.config_changed()
         self.assertFalse(self.do_openstack_upgrade.called)
         self.assertTrue(self.CONFIGS.write_all.called)
+        self.assertTrue(self.setup_rsync.called)
 
     def test_config_changed_upgrade_available(self):
         self.openstack_upgrade_available.return_value = True
@@ -83,6 +86,7 @@ class SwiftStorageRelationsTests(CharmTestCase):
         self.filter_installed_packages.return_value = ['python-psutil']
         hooks.upgrade_charm()
         self.apt_install.assert_called_with(['python-psutil'], fatal=True)
+        self.assertTrue(self.update_nrpe_config.called)
 
     def test_storage_joined_single_device(self):
         self.determine_block_devices.return_value = ['/dev/vdb']

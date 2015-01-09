@@ -88,7 +88,6 @@ class SwiftStorageUtilsTests(CharmTestCase):
             ex_dirs = [
                 call('/etc/swift', owner='swift', group='swift'),
                 call('/var/cache/swift', owner='swift', group='swift'),
-                call('/etc/rsyncd.d', owner='root', group='root'),
                 call('/srv/node', owner='swift', group='swift')
             ]
         self.assertEquals(ex_dirs, self.mkdir.call_args_list)
@@ -252,7 +251,8 @@ class SwiftStorageUtilsTests(CharmTestCase):
                                     openstack_release='grizzly')
         ex = [
             call('/etc/swift/swift.conf', ['swift_server_context']),
-            call('/etc/rsyncd.conf', ['rsync_context']),
+            call('/etc/rsync-juju.d/050-swift-storage.conf',
+                 ['rsync_context', 'swift_context']),
             call('/etc/swift/account-server.conf', ['swift_context',
                                                     'bind_host_context']),
             call('/etc/swift/object-server.conf', ['swift_context',
