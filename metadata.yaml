@@ -6,5 +6,8 @@ description: |
 categories:
     - file-servers
 provides:
+  nrpe-external-master:
+    interface: nrpe-external-master
+    scope: container
   swift-storage:
     interface: swift
