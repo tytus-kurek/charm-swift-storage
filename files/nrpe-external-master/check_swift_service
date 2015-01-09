@@ -1,0 +1,25 @@
+#!/bin/sh
+
+#
+# check_swift_service --- exactly what it says on the tin
+#
+# Copyright 2013 Canonical Ltd.
+#
+# Authors:
+#  Paul Collins <paul.collins@canonical.com>
+#
+
+STATUS=$(sudo -u swift swift-init status "$1" 2>&1)
+
+case $? in
+    0)
+	echo "OK: ${STATUS}"
+	exit 0
+	;;
+    *)
+	echo "CRITICAL: ${STATUS}"
+	exit 2
+	;;
+esac
+
+exit 1
