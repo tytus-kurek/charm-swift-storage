@@ -293,4 +293,3 @@ def concat_rsync_fragments():
             rsyncd_conf += fragment.read()
     with open('/etc/rsyncd.conf', 'w') as f:
         f.write(rsyncd_conf)
-

@@ -6,6 +6,7 @@ import sys
 from swift_storage_utils import (
     PACKAGES,
     RESTART_MAP,
+    SWIFT_SVCS,
     determine_block_devices,
     do_openstack_upgrade,
     ensure_swift_directories,
@@ -40,19 +41,6 @@ from charmhelpers.contrib.openstack.utils import (
 )
 from charmhelpers.contrib.network.ip import (
     get_ipv6_addr
-)
-from swift_storage_utils import (
-    PACKAGES,
-    RESTART_MAP,
-    SWIFT_SVCS,
-    determine_block_devices,
-    do_openstack_upgrade,
-    ensure_swift_directories,
-    fetch_swift_rings,
-    register_configs,
-    save_script_rc,
-    setup_storage,
-    concat_rsync_fragments,
 )
 from charmhelpers.contrib.charmsupport.nrpe import NRPE
 
@@ -91,7 +79,7 @@ def config_changed():
 
     save_script_rc()
     if relations_of_type('nrpe-external-master'):
-    	update_nrpe_config()
+        update_nrpe_config()
 
 
 @hooks.hook('upgrade-charm')
@@ -162,7 +150,8 @@ def update_nrpe_config():
     # check the rings and replication
     nrpe.add_check(
         shortname='swift_storage',
-        description='Check swift storage ring hashes and replication {%s}' % current_unit,
+        description='Check swift storage ring hashes and replication'
+                    ' {%s}' % current_unit,
         check_cmd='check_swift_storage.py {}'.format(
             config('nagios-check-params'))
     )
@@ -171,7 +160,7 @@ def update_nrpe_config():
         nrpe.add_check(
             shortname=service,
             description='service {%s}' % current_unit,
-            check_cmd = 'check_swift_service %s' % service,
+            check_cmd='check_swift_service %s' % service,
             )
     nrpe.write()
 
