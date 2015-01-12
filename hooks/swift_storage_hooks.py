@@ -123,13 +123,15 @@ def update_nrpe_config():
     log('Refreshing nrpe checks')
     if not os.path.exists(NAGIOS_PLUGINS):
         mkpath(NAGIOS_PLUGINS)
-    src_dir = os.path.join(os.getenv('CHARM_DIR'), 'files',
-                           'nrpe-external-master')
-    check_scripts = ['check_swift_storage.py', 'check_swift_service',
-                     'swift-storage']
-    for script in check_scripts:
-        rsync(os.path.join(src_dir, script),
-              os.path.join(NAGIOS_PLUGINS, script))
+    rsync(os.path.join(os.getenv('CHARM_DIR'), 'files', 'nrpe-external-master',
+                       'check_swift_storage.py'),
+          os.path.join(NAGIOS_PLUGINS, 'check_swift_storage.py'))
+    rsync(os.path.join(os.getenv('CHARM_DIR'), 'files', 'nrpe-external-master',
+                       'check_swift_service'),
+          os.path.join(NAGIOS_PLUGINS, 'check_swift_service'))
+    rsync(os.path.join(os.getenv('CHARM_DIR'), 'files', 'sudo',
+                       'swift-storage'),
+          os.path.join(SUDOERS_D, 'swift-storage'))
 
     # Find out if nrpe set nagios_hostname
     hostname = nrpe.get_nagios_hostname()
