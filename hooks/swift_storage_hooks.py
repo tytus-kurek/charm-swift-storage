@@ -14,7 +14,8 @@ from swift_storage_utils import (
     register_configs,
     save_script_rc,
     setup_storage,
-    assert_charm_supports_ipv6
+    assert_charm_supports_ipv6,
+    setup_rsync,
 )
 
 from charmhelpers.core.hookenv import (
@@ -42,8 +43,6 @@ from charmhelpers.contrib.network.ip import (
     get_ipv6_addr
 )
 from charmhelpers.contrib.charmsupport import nrpe
-
-from charmhelpers.contrib.charmsupport.rsync import setup_rsync
 
 from distutils.dir_util import mkpath
 
