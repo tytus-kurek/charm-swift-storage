@@ -14,7 +14,8 @@ from swift_storage_utils import (
     register_configs,
     save_script_rc,
     setup_storage,
-    assert_charm_supports_ipv6
+    assert_charm_supports_ipv6,
+    setup_rsync,
 )
 
 from charmhelpers.core.hookenv import (
@@ -24,7 +25,6 @@ from charmhelpers.core.hookenv import (
     relation_get,
     relation_set,
     relations_of_type,
-    local_unit,
 )
 
 from charmhelpers.fetch import (
@@ -42,9 +42,7 @@ from charmhelpers.contrib.openstack.utils import (
 from charmhelpers.contrib.network.ip import (
     get_ipv6_addr
 )
-from charmhelpers.contrib.charmsupport.nrpe import NRPE
-
-from charmhelpers.contrib.charmsupport.rsync import setup_rsync
+from charmhelpers.contrib.charmsupport import nrpe
 
 from distutils.dir_util import mkpath
 
@@ -120,6 +118,8 @@ def swift_storage_relation_changed():
 @hooks.hook('nrpe-external-master-relation-joined')
 @hooks.hook('nrpe-external-master-relation-changed')
 def update_nrpe_config():
+    # python-dbus is used by check_upstart_job
+    apt_install('python-dbus')
     log('Refreshing nrpe checks')
     if not os.path.exists(NAGIOS_PLUGINS):
         mkpath(NAGIOS_PLUGINS)
@@ -132,37 +132,22 @@ def update_nrpe_config():
     rsync(os.path.join(os.getenv('CHARM_DIR'), 'files', 'sudo',
                        'swift-storage'),
           os.path.join(SUDOERS_D, 'swift-storage'))
-    # Find out if nrpe set nagios_hostname
-    hostname = None
-    host_context = None
-    for rel in relations_of_type('nrpe-external-master'):
-        if 'nagios_hostname' in rel:
-            hostname = rel['nagios_hostname']
-            host_context = rel['nagios_host_context']
-            break
-    nrpe = NRPE(hostname=hostname)
 
-    if host_context:
-        current_unit = "%s:%s" % (host_context, local_unit())
-    else:
-        current_unit = local_unit()
+    # Find out if nrpe set nagios_hostname
+    hostname = nrpe.get_nagios_hostname()
+    current_unit = nrpe.get_nagios_unit_name()
+    nrpe_setup = nrpe.NRPE(hostname=hostname)
 
     # check the rings and replication
-    nrpe.add_check(
+    nrpe_setup.add_check(
         shortname='swift_storage',
         description='Check swift storage ring hashes and replication'
                     ' {%s}' % current_unit,
         check_cmd='check_swift_storage.py {}'.format(
             config('nagios-check-params'))
     )
-    # check services are running
-    for service in SWIFT_SVCS:
-        nrpe.add_check(
-            shortname=service,
-            description='service {%s}' % current_unit,
-            check_cmd='check_swift_service %s' % service,
-            )
-    nrpe.write()
+    nrpe.add_init_service_checks(nrpe_setup, SWIFT_SVCS, current_unit)
+    nrpe_setup.write()
 
 
 def main():
