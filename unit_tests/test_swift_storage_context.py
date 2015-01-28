@@ -11,6 +11,7 @@ TO_PATCH = [
     'relation_get',
     'relation_ids',
     'unit_private_ip',
+    'get_ipv6_addr',
 ]
 
 
@@ -44,6 +45,15 @@ class SwiftStorageContextTests(CharmTestCase):
         ctxt.enable_rsyncd = MagicMock()
         ctxt.enable_rsyncd.return_value = True
         self.assertEquals({'local_ip': '10.0.0.5'}, ctxt())
+        self.assertTrue(ctxt.enable_rsyncd.called)
+
+    def test_rsync_context_ipv6(self):
+        self.test_config.set('prefer-ipv6', True)
+        self.get_ipv6_addr.return_value = ['FE80:0000:0000:0000:0202:B3FF:FE1E:8329',]
+        ctxt = swift_context.RsyncContext()
+        ctxt.enable_rsyncd = MagicMock()
+        ctxt.enable_rsyncd.return_value = True
+        self.assertEquals({'local_ip': 'FE80:0000:0000:0000:0202:B3FF:FE1E:8329'}, ctxt())
         self.assertTrue(ctxt.enable_rsyncd.called)
 
     def test_rsync_enable_rsync(self):
