@@ -39,7 +39,8 @@ TO_PATCH = [
     'setup_rsync',
     'setup_storage',
     'register_configs',
-    'update_nrpe_config'
+    'update_nrpe_config',
+    'get_ipv6_addr',
 ]
 
 
@@ -82,6 +83,29 @@ class SwiftStorageRelationsTests(CharmTestCase):
         self.assertTrue(self.do_openstack_upgrade.called)
         self.assertTrue(self.CONFIGS.write_all.called)
 
+    def test_config_changed_nrpe_master(self):                   
+        self.openstack_upgrade_available.return_value = False
+        self.relations_of_type.return_value = True                          
+        with patch_open() as (_open, _file):                                
+            _file.read.return_value = "foo"                
+            hooks.config_changed()                                         
+        self.assertTrue(self.CONFIGS.write_all.called)
+        self.assertTrue(self.setup_rsync.called)                        
+        self.assertTrue(self.update_nrpe_config.called)
+
+    def test_config_changed_ipv6(self):
+        self.test_config.set('prefer-ipv6', True)
+        self.openstack_upgrade_available.return_value = False
+        self.relations_of_type.return_value = False
+        with patch_open() as (_open, _file):
+            _file.read.return_value = "foo"
+            try:
+                hooks.config_changed()
+            except:
+                pass
+        self.assertFalse(self.CONFIGS.write_all.called)
+        self.assertFalse(self.setup_rsync.called) 
+
     def test_upgrade_charm(self):
         self.filter_installed_packages.return_value = ['python-psutil']
         hooks.upgrade_charm()
@@ -95,6 +119,17 @@ class SwiftStorageRelationsTests(CharmTestCase):
             device='vdb', object_port=6000, account_port=6002,
             zone=1, container_port=6001
         )
+
+    def test_storage_joined_ipv6(self):                              
+        self.determine_block_devices.return_value = ['/dev/vdb']
+        self.test_config.set('prefer-ipv6', True)
+        self.get_ipv6_addr.return_value = ['FE80:0000:0000:0000:0202:B3FF:FE1E:8329',]
+        hooks.swift_storage_relation_joined()        
+        #self.relation_set.assert_called_with(          
+        #    device='vdb', object_port=6000, account_port=6002,
+        #    zone=1, container_port=6001, private-address='FE80:0000:0000:0000:0202:B3FF:FE1E:8329',
+        #)
+        # private-address : keyword can't be an expression  
 
     def test_storage_joined_multi_device(self):
         self.determine_block_devices.return_value = ['/dev/vdb', '/dev/vdc',
