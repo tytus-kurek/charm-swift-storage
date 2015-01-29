@@ -125,11 +125,11 @@ class SwiftStorageRelationsTests(CharmTestCase):
         self.test_config.set('prefer-ipv6', True)
         self.get_ipv6_addr.return_value = ['FE80:0000:0000:0000:0202:B3FF:FE1E:8329',]
         hooks.swift_storage_relation_joined()        
-        #self.relation_set.assert_called_with(          
-        #    device='vdb', object_port=6000, account_port=6002,
-        #    zone=1, container_port=6001, private-address='FE80:0000:0000:0000:0202:B3FF:FE1E:8329',
-        #)
-        # private-address : keyword can't be an expression  
+        args = {
+            'device':'vdb', 'object_port':6000, 'account_port':6002,
+            'zone':1, 'container_port':6001, 'private-address':'FE80:0000:0000:0000:0202:B3FF:FE1E:8329',
+        }
+        self.relation_set.assert_called_with(**args)          
 
     def test_storage_joined_multi_device(self):
         self.determine_block_devices.return_value = ['/dev/vdb', '/dev/vdc',
