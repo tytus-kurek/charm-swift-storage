@@ -20,7 +20,7 @@ u = OpenStackAmuletUtils(ERROR)
 class SwiftStorageBasicDeployment(OpenStackAmuletDeployment):
     """Amulet tests on a basic swift-storage deployment."""
 
-    def __init__(self, series, openstack=None, source=None, stable=False):
+    def __init__(self, series, openstack=None, source=None, stable=True):
         """Deploy the entire test environment."""
         super(SwiftStorageBasicDeployment, self).__init__(series, openstack,
                                                           source, stable)
