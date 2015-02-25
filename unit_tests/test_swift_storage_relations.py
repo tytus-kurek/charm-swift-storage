@@ -93,18 +93,16 @@ class SwiftStorageRelationsTests(CharmTestCase):
         self.assertTrue(self.setup_rsync.called)
         self.assertTrue(self.update_nrpe_config.called)
 
-    def test_config_changed_ipv6(self):
+    @patch.object(hooks, 'assert_charm_supports_ipv6')
+    def test_config_changed_ipv6(self, mock_assert_charm_supports_ipv6):
         self.test_config.set('prefer-ipv6', True)
         self.openstack_upgrade_available.return_value = False
         self.relations_of_type.return_value = False
         with patch_open() as (_open, _file):
             _file.read.return_value = "foo"
-            try:
-                hooks.config_changed()
-            except:
-                pass
-        self.assertFalse(self.CONFIGS.write_all.called)
-        self.assertFalse(self.setup_rsync.called)
+            hooks.config_changed()
+        self.assertTrue(self.CONFIGS.write_all.called)
+        self.assertTrue(self.setup_rsync.called)
 
     def test_upgrade_charm(self):
         self.filter_installed_packages.return_value = [
