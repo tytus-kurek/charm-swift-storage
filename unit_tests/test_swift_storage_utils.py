@@ -26,6 +26,7 @@ TO_PATCH = [
     'unit_private_ip',
     'service_restart',
     '_save_script_rc',
+    'lsb_release',
 ]
 
 
@@ -222,6 +223,20 @@ class SwiftStorageUtilsTests(CharmTestCase):
         self.unit_private_ip.return_value = '10.0.0.1'
         swift_utils.save_script_rc()
         self._save_script_rc.assert_called_with(**SCRIPT_RC_ENV)
+
+    def test_assert_charm_not_supports_ipv6(self):
+        self.lsb_release.return_value = {'DISTRIB_ID': 'Ubuntu',
+                                         'DISTRIB_RELEASE': '12.04',
+                                         'DISTRIB_CODENAME': 'precise',
+                                         'DISTRIB_DESCRIPTION': 'Ubuntu 12.04'}
+        self.assertRaises(Exception, swift_utils.assert_charm_supports_ipv6)
+
+    def test_assert_charm_supports_ipv6(self):
+        self.lsb_release.return_value = {'DISTRIB_ID': 'Ubuntu',
+                                         'DISTRIB_RELEASE': '14.04',
+                                         'DISTRIB_CODENAME': 'trusty',
+                                         'DISTRIB_DESCRIPTION': 'Ubuntu 14.04'}
+        swift_utils.assert_charm_supports_ipv6()
 
     @patch('charmhelpers.contrib.openstack.templating.OSConfigRenderer')
     def test_register_configs_pre_install(self, renderer):
