@@ -230,7 +230,7 @@ def setup_storage():
         mount(dev, '/srv/node/%s' % _dev, persist=True,
               filesystem="xfs")
     check_call(['chown', '-R', 'swift:swift', '/srv/node/'])
-    check_call(['chmod', '-R', '0750', '/srv/node/'])
+    check_call(['chmod', '-R', '0755', '/srv/node/'])
 
 
 @retry_on_exception(3, base_delay=2, exc_type=CalledProcessError)
