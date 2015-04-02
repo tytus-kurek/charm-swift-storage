@@ -177,6 +177,9 @@ class SwiftStorageUtilsTests(CharmTestCase):
         self.test_config.set('overwrite', 'false')
         swift_utils.setup_storage()
         self.assertFalse(clean.called)
+        calls = [call(['chown', '-R', 'swift:swift', '/srv/node/']),
+                 call(['chmod', '-R', '0755', '/srv/node/'])]
+        self.check_call.assert_has_calls(calls)
 
     @patch.object(swift_utils, 'clean_storage')
     @patch.object(swift_utils, 'mkfs_xfs')
@@ -189,6 +192,9 @@ class SwiftStorageUtilsTests(CharmTestCase):
         self.mkdir.assert_called_with('/srv/node/vdb', owner='swift',
                                       group='swift')
         self.mount.assert_called('/dev/vdb', '/srv/node/vdb', persist=True)
+        calls = [call(['chown', '-R', 'swift:swift', '/srv/node/']),
+                 call(['chmod', '-R', '0755', '/srv/node/'])]
+        self.check_call.assert_has_calls(calls)
 
     def _fake_is_device_mounted(self, device):
         if device in ["/dev/sda", "/dev/vda", "/dev/cciss/c0d0"]:
