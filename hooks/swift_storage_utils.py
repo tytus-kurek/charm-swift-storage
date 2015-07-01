@@ -84,19 +84,19 @@ OBJECT_SVCS = [
 ]
 
 SWIFT_SVCS = [
-    'account-auditor',
-    'account-reaper',
-    'account-replicator',
-    'account-server',
-    'container-auditor',
-    'container-replicator',
-    'container-server',
-    'container-sync',
-    'container-updater',
-    'object-auditor',
-    'object-replicator',
-    'object-server',
-    'object-updater',
+    'swift-account-auditor',
+    'swift-account-reaper',
+    'swift-account-replicator',
+    'swift-account-server',
+    'swift-container-auditor',
+    'swift-container-replicator',
+    'swift-container-server',
+    'swift-container-sync',
+    'swift-container-updater',
+    'swift-object-auditor',
+    'swift-object-replicator',
+    'swift-object-server',
+    'swift-object-updater',
     ]
 
 RESTART_MAP = {
