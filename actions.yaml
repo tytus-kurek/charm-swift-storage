@@ -1,0 +1,3 @@
+pause:
+  description: Pause the swift-storage unit. This action will stop any swift services.
+
