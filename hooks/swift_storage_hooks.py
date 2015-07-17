@@ -3,7 +3,7 @@
 import os
 import sys
 
-from swift_storage_utils import (
+from lib.swift_storage_utils import (
     PACKAGES,
     RESTART_MAP,
     SWIFT_SVCS,
