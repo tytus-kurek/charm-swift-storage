@@ -2,8 +2,9 @@
 PYTHON := /usr/bin/env python
 
 lint:
-	@flake8 --exclude hooks/charmhelpers hooks
-	@flake8 --exclude hooks/charmhelpers unit_tests tests
+	@flake8 lib
+	@flake8 --exclude charmhelpers hooks
+	@flake8 --exclude charmhelpers unit_tests tests
 	@charm proof
 
 unit_test:
