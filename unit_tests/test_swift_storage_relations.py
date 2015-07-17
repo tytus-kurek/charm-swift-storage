@@ -2,16 +2,16 @@ from mock import patch, MagicMock
 
 from test_utils import CharmTestCase, patch_open
 
-import swift_storage_utils as utils
+import lib.swift_storage_utils as utils
 
 _reg = utils.register_configs
 utils.register_configs = MagicMock()
 
-import swift_storage_hooks as hooks
+import hooks.swift_storage_hooks as hooks
 
 utils.register_configs = _reg
 
-from swift_storage_utils import PACKAGES
+from lib.swift_storage_utils import PACKAGES
 
 TO_PATCH = [
     'CONFIGS',

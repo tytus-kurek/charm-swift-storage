@@ -1,7 +1,7 @@
 from mock import MagicMock
 from test_utils import CharmTestCase, patch_open
 
-import swift_storage_context as swift_context
+import lib.swift_storage_context as swift_context
 
 
 TO_PATCH = [

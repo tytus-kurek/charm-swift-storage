@@ -4,7 +4,7 @@ import tempfile
 from mock import call, patch, MagicMock
 from test_utils import CharmTestCase, patch_open
 
-import swift_storage_utils as swift_utils
+import lib.swift_storage_utils as swift_utils
 
 
 TO_PATCH = [
