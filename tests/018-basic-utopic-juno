@@ -1,9 +1,0 @@
-#!/usr/bin/python
-
-"""Amulet tests on a basic swift-storage deployment on utopic-juno."""
-
-from basic_deployment import SwiftStorageBasicDeployment
-
-if __name__ == '__main__':
-    deployment = SwiftStorageBasicDeployment(series='utopic')
-    deployment.run_tests()
