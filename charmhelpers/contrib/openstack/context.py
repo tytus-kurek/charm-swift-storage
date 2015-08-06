@@ -1051,13 +1051,22 @@ class SubordinateConfigContext(OSContextGenerator):
         :param config_file : Service's config file to query sections
         :param interface   : Subordinate interface to inspect
         """
-        self.service = service
         self.config_file = config_file
-        self.interface = interface
+        if isinstance(service, list):
+            self.services = service
+        else:
+            self.services = [service]
+        if isinstance(interface, list):
+            self.interfaces = interface
+        else:
+            self.interfaces = [interface]
 
     def __call__(self):
         ctxt = {'sections': {}}
-        for rid in relation_ids(self.interface):
+        rids = []
+        for interface in self.interfaces:
+            rids.extend(relation_ids(interface))
+        for rid in rids:
             for unit in related_units(rid):
                 sub_config = relation_get('subordinate_configuration',
                                           rid=rid, unit=unit)
@@ -1069,29 +1078,32 @@ class SubordinateConfigContext(OSContextGenerator):
                             'setting from %s' % rid, level=ERROR)
                         continue
 
-                    if self.service not in sub_config:
-                        log('Found subordinate_config on %s but it contained'
-                            'nothing for %s service' % (rid, self.service),
-                            level=INFO)
-                        continue
+                    for service in self.services:
+                        if service not in sub_config:
+                            log('Found subordinate_config on %s but it contained'
+                                'nothing for %s service' % (rid, service),
+                                level=INFO)
+                            continue
 
-                    sub_config = sub_config[self.service]
-                    if self.config_file not in sub_config:
-                        log('Found subordinate_config on %s but it contained'
-                            'nothing for %s' % (rid, self.config_file),
-                            level=INFO)
-                        continue
+                        sub_config = sub_config[service]
+                        if self.config_file not in sub_config:
+                            log('Found subordinate_config on %s but it contained'
+                                'nothing for %s' % (rid, self.config_file),
+                                level=INFO)
+                            continue
 
-                    sub_config = sub_config[self.config_file]
-                    for k, v in six.iteritems(sub_config):
-                        if k == 'sections':
-                            for section, config_dict in six.iteritems(v):
-                                log("adding section '%s'" % (section),
-                                    level=DEBUG)
-                                ctxt[k][section] = config_dict
-                        else:
-                            ctxt[k] = v
-
+                        sub_config = sub_config[self.config_file]
+                        for k, v in six.iteritems(sub_config):
+                            if k == 'sections':
+                                for section, config_list in six.iteritems(v):
+                                    log("adding section '%s'" % (section),
+                                        level=DEBUG)
+                                    if ctxt[k].get(section):
+                                        ctxt[k][section].extend(config_list)
+                                    else:
+                                        ctxt[k][section] = config_list
+                            else:
+                                ctxt[k] = v
         log("%d section(s) found" % (len(ctxt['sections'])), level=DEBUG)
         return ctxt
 
