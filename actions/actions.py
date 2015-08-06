@@ -49,7 +49,7 @@ def main(argv):
 
 def _get_action_name():
     """Return the name of the action."""
-    return os.path.filename(__file__)
+    return os.path.basename(__file__)
 
 
 def _get_actions_yaml_path():
