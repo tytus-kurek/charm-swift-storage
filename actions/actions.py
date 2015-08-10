@@ -21,10 +21,15 @@ def get_action_parser(actions_yaml_path, action_name):
 
 
 def pause(args):
-    """Pause all the swift services."""
-    # TODO: What if some services stop and others don't?
+    """Pause all the swift services.
+
+    @raises Exception if any services fail to stop
+    """
     for service in SWIFT_SVCS:
-        service_pause(service)
+        stopped = service_pause(service)
+        if not stopped:
+            raise Exception("{} didn't stop cleanly.".format(service))
+
 
 # A dictionary of all the defined actions to callables (which take
 # parsed arguments).
