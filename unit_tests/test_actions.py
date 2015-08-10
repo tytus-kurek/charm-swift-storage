@@ -18,7 +18,12 @@ class PauseTestCase(CharmTestCase):
     def test_pauses_services(self):
         """Pause action pauses all of the Swift services."""
         pause_calls = []
-        self.service_pause.side_effect = pause_calls.append
+
+        def fake_service_pause(svc):
+            pause_calls.append(svc)
+            return True
+
+        self.service_pause.side_effect = fake_service_pause
         actions.actions.pause([])
         self.assertEqual(pause_calls, ['swift-account-auditor',
                                        'swift-account-reaper',
@@ -33,6 +38,26 @@ class PauseTestCase(CharmTestCase):
                                        'swift-object-replicator',
                                        'swift-object-server',
                                        'swift-object-updater'])
+
+    def test_bails_out_early_on_error(self):
+        """Pause action fails early if there are errors stopping a service."""
+        pause_calls = []
+
+        def maybe_kill(svc):
+            if svc == "swift-container-auditor":
+                return False
+            else:
+                pause_calls.append(svc)
+                return True
+
+        self.service_pause.side_effect = maybe_kill
+        self.assertRaisesRegexp(
+            Exception, "swift-container-auditor didn't stop cleanly.",
+            actions.actions.pause, [])
+        self.assertEqual(pause_calls, ['swift-account-auditor',
+                                       'swift-account-reaper',
+                                       'swift-account-replicator',
+                                       'swift-account-server'])
 
 
 class GetActionParserTestCase(unittest.TestCase):
