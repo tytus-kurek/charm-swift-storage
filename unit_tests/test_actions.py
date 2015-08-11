@@ -81,6 +81,75 @@ class PauseTestCase(CharmTestCase):
                            "Use 'resume' action to resume normal service."])
 
 
+class ResumeTestCase(CharmTestCase):
+
+    def setUp(self):
+        super(ResumeTestCase, self).setUp(
+            actions.actions, ["service_resume", "status_set"])
+
+    def test_resumes_services(self):
+        """Resume action resumes all of the Swift services."""
+        resume_calls = []
+
+        def fake_service_resume(svc):
+            resume_calls.append(svc)
+            return True
+
+        self.service_resume.side_effect = fake_service_resume
+        actions.actions.resume([])
+        self.assertEqual(resume_calls, ['swift-account-auditor',
+                                        'swift-account-reaper',
+                                        'swift-account-replicator',
+                                        'swift-account-server',
+                                        'swift-container-auditor',
+                                        'swift-container-replicator',
+                                        'swift-container-server',
+                                        'swift-container-sync',
+                                        'swift-container-updater',
+                                        'swift-object-auditor',
+                                        'swift-object-replicator',
+                                        'swift-object-server',
+                                        'swift-object-updater'])
+
+    def test_bails_out_early_on_error(self):
+        """Resume action fails early if there are errors starting a service."""
+        resume_calls = []
+
+        def maybe_kill(svc):
+            if svc == "swift-container-auditor":
+                return False
+            else:
+                resume_calls.append(svc)
+                return True
+
+        self.service_resume.side_effect = maybe_kill
+        self.assertRaisesRegexp(
+            Exception, "swift-container-auditor didn't start cleanly.",
+            actions.actions.resume, [])
+        self.assertEqual(resume_calls, ['swift-account-auditor',
+                                        'swift-account-reaper',
+                                        'swift-account-replicator',
+                                        'swift-account-server'])
+
+    def test_status_mode(self):
+        """Resume action sets the status to maintenance."""
+        status_calls = []
+        self.status_set.side_effect = lambda state, msg: status_calls.append(
+            state)
+
+        actions.actions.resume([])
+        self.assertEqual(status_calls, ["active"])
+
+    def test_status_message(self):
+        """Resume action sets an empty status message."""
+        status_calls = []
+        self.status_set.side_effect = lambda state, msg: status_calls.append(
+            msg)
+
+        actions.actions.resume([])
+        self.assertEqual(status_calls, [""])
+
+
 class GetActionParserTestCase(unittest.TestCase):
 
     def test_definition_from_yaml(self):
