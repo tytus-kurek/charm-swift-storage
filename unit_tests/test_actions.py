@@ -76,7 +76,9 @@ class MainTestCase(CharmTestCase):
 
     def setUp(self):
         super(MainTestCase, self).setUp(
-            actions.actions, ["_get_action_name", "get_action_parser"])
+            actions.actions, ["_get_action_name",
+                              "get_action_parser",
+                              "action_fail"])
 
     def test_invokes_pause(self):
         dummy_calls = []
@@ -89,3 +91,25 @@ class MainTestCase(CharmTestCase):
         with mock.patch.dict(actions.actions.ACTIONS, {"foo": dummy_action}):
             actions.actions.main([])
         self.assertEqual(dummy_calls, [True])
+
+    def test_unknown_action(self):
+        """Unknown actions aren't a traceback."""
+        self._get_action_name.side_effect = lambda: "foo"
+        self.get_action_parser = lambda: argparse.ArgumentParser()
+        exit_string = actions.actions.main([])
+        self.assertEqual("Action foo undefined", exit_string)
+
+    def test_failing_action(self):
+        """Actions which traceback trigger action_fail() calls."""
+        dummy_calls = []
+
+        self.action_fail.side_effect = dummy_calls.append
+        self._get_action_name.side_effect = lambda: "foo"
+
+        def dummy_action(args):
+            raise ValueError("uh oh")
+
+        self.get_action_parser = lambda: argparse.ArgumentParser()
+        with mock.patch.dict(actions.actions.ACTIONS, {"foo": dummy_action}):
+            actions.actions.main([])
+        self.assertEqual(dummy_calls, ["uh oh"])
