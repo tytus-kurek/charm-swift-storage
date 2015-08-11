@@ -13,7 +13,8 @@ import actions.actions
 class PauseTestCase(CharmTestCase):
 
     def setUp(self):
-        super(PauseTestCase, self).setUp(actions.actions, ["service_pause"])
+        super(PauseTestCase, self).setUp(
+            actions.actions, ["service_pause", "status_set"])
 
     def test_pauses_services(self):
         """Pause action pauses all of the Swift services."""
@@ -58,6 +59,26 @@ class PauseTestCase(CharmTestCase):
                                        'swift-account-reaper',
                                        'swift-account-replicator',
                                        'swift-account-server'])
+
+    def test_status_mode(self):
+        """Pause action sets the status to maintenance."""
+        status_calls = []
+        self.status_set.side_effect = lambda state, msg: status_calls.append(
+            state)
+
+        actions.actions.pause([])
+        self.assertEqual(status_calls, ["maintenance"])
+
+    def test_status_message(self):
+        """Pause action sets a status message reflecting that it's paused."""
+        status_calls = []
+        self.status_set.side_effect = lambda state, msg: status_calls.append(
+            msg)
+
+        actions.actions.pause([])
+        self.assertEqual(
+            status_calls, ["Paused. "
+                           "Use 'resume' action to resume normal service."])
 
 
 class GetActionParserTestCase(unittest.TestCase):

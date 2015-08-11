@@ -6,7 +6,7 @@ import sys
 import yaml
 
 from charmhelpers.core.host import service_pause
-from charmhelpers.core.hookenv import action_fail
+from charmhelpers.core.hookenv import action_fail, status_set
 
 from lib.swift_storage_utils import SWIFT_SVCS
 
@@ -29,6 +29,8 @@ def pause(args):
         stopped = service_pause(service)
         if not stopped:
             raise Exception("{} didn't stop cleanly.".format(service))
+    status_set(
+        "maintenance", "Paused. Use 'resume' action to resume normal service.")
 
 
 # A dictionary of all the defined actions to callables (which take
