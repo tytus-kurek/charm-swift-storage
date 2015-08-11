@@ -4,4 +4,4 @@ exclude_lines =
     if __name__ == .__main__.:
 include=
     hooks/swift_storage_*
-
+    lib/swift_storage_*
