@@ -83,21 +83,7 @@ OBJECT_SVCS = [
     'swift-object-updater', 'swift-object-replicator'
 ]
 
-SWIFT_SVCS = [
-    'swift-account-auditor',
-    'swift-account-reaper',
-    'swift-account-replicator',
-    'swift-account-server',
-    'swift-container-auditor',
-    'swift-container-replicator',
-    'swift-container-server',
-    'swift-container-sync',
-    'swift-container-updater',
-    'swift-object-auditor',
-    'swift-object-replicator',
-    'swift-object-server',
-    'swift-object-updater',
-    ]
+SWIFT_SVCS = ACCOUNT_SVCS + CONTAINER_SVCS + OBJECT_SVCS
 
 RESTART_MAP = {
     '/etc/rsync-juju.d/050-swift-storage.conf': ['rsync'],

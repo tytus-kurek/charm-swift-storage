@@ -26,26 +26,26 @@ class PauseTestCase(CharmTestCase):
 
         self.service_pause.side_effect = fake_service_pause
         actions.actions.pause([])
-        self.assertEqual(pause_calls, ['swift-account-auditor',
+        self.assertEqual(pause_calls, ['swift-account',
+                                       'swift-account-auditor',
                                        'swift-account-reaper',
                                        'swift-account-replicator',
-                                       'swift-account-server',
+                                       'swift-container',
                                        'swift-container-auditor',
-                                       'swift-container-replicator',
-                                       'swift-container-server',
-                                       'swift-container-sync',
                                        'swift-container-updater',
+                                       'swift-container-replicator',
+                                       'swift-container-sync',
+                                       'swift-object',
                                        'swift-object-auditor',
-                                       'swift-object-replicator',
-                                       'swift-object-server',
-                                       'swift-object-updater'])
+                                       'swift-object-updater',
+                                       'swift-object-replicator'])
 
     def test_bails_out_early_on_error(self):
         """Pause action fails early if there are errors stopping a service."""
         pause_calls = []
 
         def maybe_kill(svc):
-            if svc == "swift-container-auditor":
+            if svc == "swift-container":
                 return False
             else:
                 pause_calls.append(svc)
@@ -53,12 +53,12 @@ class PauseTestCase(CharmTestCase):
 
         self.service_pause.side_effect = maybe_kill
         self.assertRaisesRegexp(
-            Exception, "swift-container-auditor didn't stop cleanly.",
+            Exception, "swift-container didn't stop cleanly.",
             actions.actions.pause, [])
-        self.assertEqual(pause_calls, ['swift-account-auditor',
+        self.assertEqual(pause_calls, ['swift-account',
+                                       'swift-account-auditor',
                                        'swift-account-reaper',
-                                       'swift-account-replicator',
-                                       'swift-account-server'])
+                                       'swift-account-replicator'])
 
     def test_status_mode(self):
         """Pause action sets the status to maintenance."""
@@ -97,26 +97,26 @@ class ResumeTestCase(CharmTestCase):
 
         self.service_resume.side_effect = fake_service_resume
         actions.actions.resume([])
-        self.assertEqual(resume_calls, ['swift-account-auditor',
+        self.assertEqual(resume_calls, ['swift-account',
+                                        'swift-account-auditor',
                                         'swift-account-reaper',
                                         'swift-account-replicator',
-                                        'swift-account-server',
+                                        'swift-container',
                                         'swift-container-auditor',
-                                        'swift-container-replicator',
-                                        'swift-container-server',
-                                        'swift-container-sync',
                                         'swift-container-updater',
+                                        'swift-container-replicator',
+                                        'swift-container-sync',
+                                        'swift-object',
                                         'swift-object-auditor',
-                                        'swift-object-replicator',
-                                        'swift-object-server',
-                                        'swift-object-updater'])
+                                        'swift-object-updater',
+                                        'swift-object-replicator'])
 
     def test_bails_out_early_on_error(self):
         """Resume action fails early if there are errors starting a service."""
         resume_calls = []
 
         def maybe_kill(svc):
-            if svc == "swift-container-auditor":
+            if svc == "swift-container":
                 return False
             else:
                 resume_calls.append(svc)
@@ -124,12 +124,12 @@ class ResumeTestCase(CharmTestCase):
 
         self.service_resume.side_effect = maybe_kill
         self.assertRaisesRegexp(
-            Exception, "swift-container-auditor didn't start cleanly.",
+            Exception, "swift-container didn't start cleanly.",
             actions.actions.resume, [])
-        self.assertEqual(resume_calls, ['swift-account-auditor',
+        self.assertEqual(resume_calls, ['swift-account',
+                                        'swift-account-auditor',
                                         'swift-account-reaper',
-                                        'swift-account-replicator',
-                                        'swift-account-server'])
+                                        'swift-account-replicator'])
 
     def test_status_mode(self):
         """Resume action sets the status to maintenance."""
