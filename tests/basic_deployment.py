@@ -9,8 +9,7 @@ from charmhelpers.contrib.openstack.amulet.deployment import (
 
 from charmhelpers.contrib.openstack.amulet.utils import (
     OpenStackAmuletUtils,
-    DEBUG, # flake8: noqa
-    ERROR
+    DEBUG,
 )
 
 # Use DEBUG to turn on debug logging
@@ -46,12 +45,12 @@ class SwiftStorageBasicDeployment(OpenStackAmuletDeployment):
     def _add_relations(self):
         """Add all of the relations for the services."""
         relations = {
-          'keystone:shared-db': 'mysql:shared-db',
-          'swift-proxy:identity-service': 'keystone:identity-service',
-          'swift-storage:swift-storage': 'swift-proxy:swift-storage',
-          'glance:identity-service': 'keystone:identity-service',
-          'glance:shared-db': 'mysql:shared-db',
-          'glance:object-store': 'swift-proxy:object-store'
+            'keystone:shared-db': 'mysql:shared-db',
+            'swift-proxy:identity-service': 'keystone:identity-service',
+            'swift-storage:swift-storage': 'swift-proxy:swift-storage',
+            'glance:identity-service': 'keystone:identity-service',
+            'glance:shared-db': 'mysql:shared-db',
+            'glance:object-store': 'swift-proxy:object-store'
         }
         super(SwiftStorageBasicDeployment, self)._add_relations(relations)
 
@@ -59,9 +58,11 @@ class SwiftStorageBasicDeployment(OpenStackAmuletDeployment):
         """Configure all of the services."""
         keystone_config = {'admin-password': 'openstack',
                            'admin-token': 'ubuntutesting'}
-        swift_proxy_config = {'zone-assignment': 'manual',
-                           'replicas': '1',
-                           'swift-hash': 'fdfef9d4-8b06-11e2-8ac0-531c923c8fae'}
+        swift_proxy_config = {
+            'zone-assignment': 'manual',
+            'replicas': '1',
+            'swift-hash': 'fdfef9d4-8b06-11e2-8ac0-531c923c8fae'
+        }
         swift_storage_config = {'zone': '1',
                                 'block-device': 'vdb',
                                 'overwrite': 'true'}
@@ -89,15 +90,16 @@ class SwiftStorageBasicDeployment(OpenStackAmuletDeployment):
         self.glance = u.authenticate_glance_admin(self.keystone)
 
         # Authenticate swift user
-        keystone_relation = self.keystone_sentry.relation('identity-service',
-                                                 'swift-proxy:identity-service')
+        keystone_relation = self.keystone_sentry.relation(
+            'identity-service', 'swift-proxy:identity-service')
         ep = self.keystone.service_catalog.url_for(service_type='identity',
                                                    endpoint_type='publicURL')
-        self.swift = swiftclient.Connection(authurl=ep,
-                                user=keystone_relation['service_username'],
-                                key=keystone_relation['service_password'],
-                                tenant_name=keystone_relation['service_tenant'],
-                                auth_version='2.0')
+        self.swift = swiftclient.Connection(
+            authurl=ep,
+            user=keystone_relation['service_username'],
+            key=keystone_relation['service_password'],
+            tenant_name=keystone_relation['service_tenant'],
+            auth_version='2.0')
 
         # Create a demo tenant/role/user
         self.demo_tenant = 'demoTenant'
@@ -139,7 +141,8 @@ class SwiftStorageBasicDeployment(OpenStackAmuletDeployment):
         commands = {
             self.mysql_sentry: ['status mysql'],
             self.keystone_sentry: ['status keystone'],
-            self.glance_sentry: ['status glance-registry', 'status glance-api'],
+            self.glance_sentry: [
+                'status glance-registry', 'status glance-api'],
             self.swift_proxy_sentry: ['status swift-proxy'],
             self.swift_storage_sentry: swift_storage_services
         }
@@ -303,8 +306,8 @@ class SwiftStorageBasicDeployment(OpenStackAmuletDeployment):
            file."""
         unit = self.swift_storage_sentry
         conf = '/etc/swift/swift.conf'
-        swift_proxy_relation = self.swift_proxy_sentry.relation('swift-storage',
-                                                  'swift-storage:swift-storage')
+        swift_proxy_relation = self.swift_proxy_sentry.relation(
+            'swift-storage', 'swift-storage:swift-storage')
         expected = {
             'swift_hash_path_suffix': swift_proxy_relation['swift_hash']
         }
@@ -405,7 +408,8 @@ class SwiftStorageBasicDeployment(OpenStackAmuletDeployment):
 
     def test_image_create(self):
         """Create an instance in glance, which is backed by swift, and validate
-           that some of the metadata for the image match in glance and swift."""
+           that some of the metadata for the image match in glance and swift.
+        """
         # NOTE(coreycb): Skipping failing test on folsom until resolved. On
         #                folsom only, uploading an image to glance gets 400 Bad
         #                Request - Error uploading image: (error): [Errno 111]
@@ -435,7 +439,8 @@ class SwiftStorageBasicDeployment(OpenStackAmuletDeployment):
         # Validate that swift object's checksum/size match that from glance
         headers, containers = self.swift.get_account()
         if len(containers) != 1:
-            msg = "Expected 1 swift container, found {}".format(len(containers))
+            msg = "Expected 1 swift container, found {}".format(
+                len(containers))
             amulet.raise_status(amulet.FAIL, msg=msg)
 
         container_name = containers[0].get('name')
@@ -449,13 +454,13 @@ class SwiftStorageBasicDeployment(OpenStackAmuletDeployment):
         swift_object_md5 = objects[0].get('hash')
 
         if glance_image_size != swift_object_size:
-            msg = "Glance image size {} != swift object size {}".format( \
-                                           glance_image_size, swift_object_size)
+            msg = "Glance image size {} != swift object size {}".format(
+                glance_image_size, swift_object_size)
             amulet.raise_status(amulet.FAIL, msg=msg)
 
         if glance_image_md5 != swift_object_md5:
-            msg = "Glance image hash {} != swift object hash {}".format( \
-                                             glance_image_md5, swift_object_md5)
+            msg = "Glance image hash {} != swift object hash {}".format(
+                glance_image_md5, swift_object_md5)
             amulet.raise_status(amulet.FAIL, msg=msg)
 
         # Cleanup
