@@ -529,6 +529,6 @@ class SwiftStorageBasicDeployment(OpenStackAmuletDeployment):
 
         self._assert_services(should_run=True)
 
-    def test_actions(self):
+    def test_z_actions(self):
         self._test_pause()
         self._test_resume()
