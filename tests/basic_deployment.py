@@ -1,3 +1,6 @@
+import json
+import subprocess
+
 import amulet
 import swiftclient
 
@@ -463,3 +466,69 @@ class SwiftStorageBasicDeployment(OpenStackAmuletDeployment):
 
         # Cleanup
         u.delete_image(self.glance, image)
+
+    def _run_action(self, unit_id, action):
+        """Run the named action on a given unit.
+
+        @return action_id.
+        """
+        command = ["juju", "action", "do", "--format=json", unit_id, action]
+        u.log.info("Running command: %s\n" % " ".join(command))
+        output = subprocess.check_output(command)
+        output_json = output.decode("utf-8")
+        data = json.loads(output_json)
+        action_id = data[u'Action queued with id']
+        return action_id
+
+    def _wait_on_action(self, action_id):
+        """Wait for a given action, returning if it completed or not."""
+        command = ["juju", "action", "fetch", "--format=json", "--wait=0",
+                   action_id]
+        output = subprocess.check_output(command)
+        output_json = output.decode("utf-8")
+        data = json.loads(output_json)
+        return data.get(u"status") == "completed"
+
+    def _assert_services(self, should_run):
+        swift_storage_services = ['swift-account',
+                                  'swift-account-auditor',
+                                  'swift-account-reaper',
+                                  'swift-account-replicator',
+                                  'swift-container',
+                                  'swift-container-auditor',
+                                  'swift-container-replicator',
+                                  'swift-container-updater',
+                                  'swift-object',
+                                  'swift-object-auditor',
+                                  'swift-object-replicator',
+                                  'swift-object-updater']
+        expected_swift_storage_processes = dict.fromkeys(
+            swift_storage_services, should_run)
+        expected_processes = {
+            self.swift_storage_sentry: expected_swift_storage_processes
+        }
+        actual_pids = u.get_unit_process_ids(expected_processes)
+        ret = u.validate_unit_process_ids(expected_processes, actual_pids)
+        if ret:
+            amulet.raise_status(amulet.FAIL, msg=ret)
+
+    def _test_pause(self):
+        self._assert_services(should_run=True)
+        unit_name = self.swift_storage_sentry.info["unit_name"]
+        pause_action_id = self._run_action(unit_name, "pause")
+        assert self._wait_on_action(pause_action_id), "Pause action failed."
+
+        self._assert_services(should_run=False)
+
+    def _test_resume(self):
+        # service is paused
+        self._assert_services(should_run=False)
+        unit_name = self.swift_storage_sentry.info["unit_name"]
+        pause_action_id = self._run_action(unit_name, "resume")
+        assert self._wait_on_action(pause_action_id), "Resume action failed."
+
+        self._assert_services(should_run=True)
+
+    def test_actions(self):
+        self._test_pause()
+        self._test_resume()
