@@ -16,6 +16,22 @@ class PauseTestCase(CharmTestCase):
         super(PauseTestCase, self).setUp(
             actions.actions, ["service_pause", "status_set"])
 
+        class FakeArgs(object):
+            services = ['swift-account',
+                        'swift-account-auditor',
+                        'swift-account-reaper',
+                        'swift-account-replicator',
+                        'swift-container',
+                        'swift-container-auditor',
+                        'swift-container-updater',
+                        'swift-container-replicator',
+                        'swift-container-sync',
+                        'swift-object',
+                        'swift-object-auditor',
+                        'swift-object-updater',
+                        'swift-object-replicator']
+        self.args = FakeArgs()
+
     def test_pauses_services(self):
         """Pause action pauses all of the Swift services."""
         pause_calls = []
@@ -25,7 +41,8 @@ class PauseTestCase(CharmTestCase):
             return True
 
         self.service_pause.side_effect = fake_service_pause
-        actions.actions.pause([])
+
+        actions.actions.pause(self.args)
         self.assertEqual(pause_calls, ['swift-account',
                                        'swift-account-auditor',
                                        'swift-account-reaper',
@@ -54,7 +71,7 @@ class PauseTestCase(CharmTestCase):
         self.service_pause.side_effect = maybe_kill
         self.assertRaisesRegexp(
             Exception, "swift-container didn't stop cleanly.",
-            actions.actions.pause, [])
+            actions.actions.pause, self.args)
         self.assertEqual(pause_calls, ['swift-account',
                                        'swift-account-auditor',
                                        'swift-account-reaper',
@@ -66,7 +83,7 @@ class PauseTestCase(CharmTestCase):
         self.status_set.side_effect = lambda state, msg: status_calls.append(
             state)
 
-        actions.actions.pause([])
+        actions.actions.pause(self.args)
         self.assertEqual(status_calls, ["maintenance"])
 
     def test_status_message(self):
@@ -75,7 +92,7 @@ class PauseTestCase(CharmTestCase):
         self.status_set.side_effect = lambda state, msg: status_calls.append(
             msg)
 
-        actions.actions.pause([])
+        actions.actions.pause(self.args)
         self.assertEqual(
             status_calls, ["Paused. "
                            "Use 'resume' action to resume normal service."])
@@ -87,6 +104,22 @@ class ResumeTestCase(CharmTestCase):
         super(ResumeTestCase, self).setUp(
             actions.actions, ["service_resume", "status_set"])
 
+        class FakeArgs(object):
+            services = ['swift-account',
+                        'swift-account-auditor',
+                        'swift-account-reaper',
+                        'swift-account-replicator',
+                        'swift-container',
+                        'swift-container-auditor',
+                        'swift-container-updater',
+                        'swift-container-replicator',
+                        'swift-container-sync',
+                        'swift-object',
+                        'swift-object-auditor',
+                        'swift-object-updater',
+                        'swift-object-replicator']
+        self.args = FakeArgs()
+
     def test_resumes_services(self):
         """Resume action resumes all of the Swift services."""
         resume_calls = []
@@ -96,7 +129,7 @@ class ResumeTestCase(CharmTestCase):
             return True
 
         self.service_resume.side_effect = fake_service_resume
-        actions.actions.resume([])
+        actions.actions.resume(self.args)
         self.assertEqual(resume_calls, ['swift-account',
                                         'swift-account-auditor',
                                         'swift-account-reaper',
@@ -125,7 +158,7 @@ class ResumeTestCase(CharmTestCase):
         self.service_resume.side_effect = maybe_kill
         self.assertRaisesRegexp(
             Exception, "swift-container didn't start cleanly.",
-            actions.actions.resume, [])
+            actions.actions.resume, self.args)
         self.assertEqual(resume_calls, ['swift-account',
                                         'swift-account-auditor',
                                         'swift-account-reaper',
@@ -137,7 +170,7 @@ class ResumeTestCase(CharmTestCase):
         self.status_set.side_effect = lambda state, msg: status_calls.append(
             state)
 
-        actions.actions.resume([])
+        actions.actions.resume(self.args)
         self.assertEqual(status_calls, ["active"])
 
     def test_status_message(self):
@@ -146,7 +179,7 @@ class ResumeTestCase(CharmTestCase):
         self.status_set.side_effect = lambda state, msg: status_calls.append(
             msg)
 
-        actions.actions.resume([])
+        actions.actions.resume(self.args)
         self.assertEqual(status_calls, [""])
 
 
@@ -158,7 +191,8 @@ class GetActionParserTestCase(unittest.TestCase):
             prefix="GetActionParserTestCase", suffix="yaml")
         actions_yaml.write(yaml.dump({"foo": {"description": "Foo is bar"}}))
         actions_yaml.seek(0)
-        parser = actions.actions.get_action_parser(actions_yaml.name, "foo")
+        parser = actions.actions.get_action_parser(actions_yaml.name, "foo",
+                                                   get_services=lambda: [])
         self.assertEqual(parser.description, 'Foo is bar')
 
 

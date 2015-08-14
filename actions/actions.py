@@ -7,15 +7,27 @@ import yaml
 
 from charmhelpers.core.host import service_pause, service_resume
 from charmhelpers.core.hookenv import action_fail, status_set
+from charmhelpers.contrib.openstack.utils import get_os_codename_package
 
 from lib.swift_storage_utils import SWIFT_SVCS
 
 
-def get_action_parser(actions_yaml_path, action_name):
+def _get_services():
+    """Return a list of services that need to be (un)paused."""
+    services = SWIFT_SVCS[:]
+    # Before Icehouse there was no swift-container-sync
+    if get_os_codename_package("swift-container") < "icehouse":
+        services.pop("swift-container-sync")
+    return services
+
+
+def get_action_parser(actions_yaml_path, action_name,
+                      get_services=_get_services):
     """Make an argparse.ArgumentParser seeded from actions.yaml definitions."""
     with open(actions_yaml_path) as fh:
         doc = yaml.load(fh)[action_name]["description"]
     parser = argparse.ArgumentParser(description=doc)
+    parser.add_argument("--services", default=get_services())
     # TODO: Add arguments for params defined in the actions.yaml
     return parser
 
@@ -25,7 +37,7 @@ def pause(args):
 
     @raises Exception if any services fail to stop
     """
-    for service in SWIFT_SVCS:
+    for service in args.services:
         stopped = service_pause(service)
         if not stopped:
             raise Exception("{} didn't stop cleanly.".format(service))
@@ -38,7 +50,7 @@ def resume(args):
 
     @raises Exception if any services fail to start
     """
-    for service in SWIFT_SVCS:
+    for service in args.services:
         started = service_resume(service)
         if not started:
             raise Exception("{} didn't start cleanly.".format(service))
