@@ -490,29 +490,33 @@ class SwiftStorageBasicDeployment(OpenStackAmuletDeployment):
         return data.get(u"status") == "completed"
 
     def _assert_services(self, should_run):
-        swift_storage_services = ['swift-account',
-                                  'swift-account-auditor',
+        swift_storage_services = ['swift-account-auditor',
                                   'swift-account-reaper',
                                   'swift-account-replicator',
-                                  'swift-container',
+                                  'swift-account-server',
                                   'swift-container-auditor',
                                   'swift-container-replicator',
+                                  'swift-container-server',
                                   'swift-container-updater',
-                                  'swift-object',
                                   'swift-object-auditor',
                                   'swift-object-replicator',
+                                  'swift-object-server',
                                   'swift-object-updater']
-        expected_swift_storage_processes = dict.fromkeys(
-            swift_storage_services, should_run)
-        expected_processes = {
-            self.swift_storage_sentry: expected_swift_storage_processes
-        }
-        actual_pids = u.get_unit_process_ids(expected_processes)
-        ret = u.validate_unit_process_ids(expected_processes, actual_pids)
+        # We can't use validate_unit_process_ids and friends because
+        # 1) they don't use -x on pidof, so can't find scripts
+        # 2) they will fail straight away if the process isn't running (
+        #    a desired state of a paused system)
+        commands = [
+            "pidof -x {}".format(svc) for svc in swift_storage_services]
+        if not should_run:
+            commands = ["{} || exit 0 && exit 1".format(cmd)
+                        for cmd in commands]
+        ret = u.check_commands_on_units(commands, [self.swift_storage_sentry])
         if ret:
             amulet.raise_status(amulet.FAIL, msg=ret)
 
     def _test_pause(self):
+        u.log.info("Testing pause action")
         self._assert_services(should_run=True)
         unit_name = self.swift_storage_sentry.info["unit_name"]
         pause_action_id = self._run_action(unit_name, "pause")
@@ -521,7 +525,8 @@ class SwiftStorageBasicDeployment(OpenStackAmuletDeployment):
         self._assert_services(should_run=False)
 
     def _test_resume(self):
-        # service is paused
+        u.log.info("Testing resume action")
+        # service is left paused by _test_pause
         self._assert_services(should_run=False)
         unit_name = self.swift_storage_sentry.info["unit_name"]
         pause_action_id = self._run_action(unit_name, "resume")
@@ -529,6 +534,7 @@ class SwiftStorageBasicDeployment(OpenStackAmuletDeployment):
 
         self._assert_services(should_run=True)
 
-    def test_z_actions(self):
+    def test_actions(self):
+        """Pause and then resume swift-storage."""
         self._test_pause()
         self._test_resume()
