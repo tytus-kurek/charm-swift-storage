@@ -1,6 +1,3 @@
-import json
-import subprocess
-
 import amulet
 import swiftclient
 
@@ -467,28 +464,6 @@ class SwiftStorageBasicDeployment(OpenStackAmuletDeployment):
         # Cleanup
         u.delete_image(self.glance, image)
 
-    def _run_action(self, unit_id, action):
-        """Run the named action on a given unit.
-
-        @return action_id.
-        """
-        command = ["juju", "action", "do", "--format=json", unit_id, action]
-        u.log.info("Running command: %s\n" % " ".join(command))
-        output = subprocess.check_output(command)
-        output_json = output.decode("utf-8")
-        data = json.loads(output_json)
-        action_id = data[u'Action queued with id']
-        return action_id
-
-    def _wait_on_action(self, action_id):
-        """Wait for a given action, returning if it completed or not."""
-        command = ["juju", "action", "fetch", "--format=json", "--wait=0",
-                   action_id]
-        output = subprocess.check_output(command)
-        output_json = output.decode("utf-8")
-        data = json.loads(output_json)
-        return data.get(u"status") == "completed"
-
     def _assert_services(self, should_run):
         swift_storage_services = ['swift-account-auditor',
                                   'swift-account-reaper',
@@ -522,8 +497,8 @@ class SwiftStorageBasicDeployment(OpenStackAmuletDeployment):
         u.log.info("Testing pause action")
         self._assert_services(should_run=True)
         unit_name = self.swift_storage_sentry.info["unit_name"]
-        pause_action_id = self._run_action(unit_name, "pause")
-        assert self._wait_on_action(pause_action_id), "Pause action failed."
+        pause_action_id = u.run_action(unit_name, "pause")
+        assert u.wait_on_action(pause_action_id), "Pause action failed."
 
         self._assert_services(should_run=False)
 
