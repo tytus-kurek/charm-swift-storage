@@ -497,11 +497,14 @@ class SwiftStorageBasicDeployment(OpenStackAmuletDeployment):
                                   'swift-container-auditor',
                                   'swift-container-replicator',
                                   'swift-container-server',
+                                  'swift-container-sync',
                                   'swift-container-updater',
                                   'swift-object-auditor',
                                   'swift-object-replicator',
                                   'swift-object-server',
                                   'swift-object-updater']
+        if self._get_openstack_release() < self.precise_icehouse:
+            swift_storage_services.pop('swift-container-sync')
         # We can't use validate_unit_process_ids and friends because
         # 1) they don't use -x on pidof, so can't find scripts
         # 2) they will fail straight away if the process isn't running (
