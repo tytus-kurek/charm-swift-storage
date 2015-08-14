@@ -17,7 +17,7 @@ def _get_services():
     services = SWIFT_SVCS[:]
     # Before Icehouse there was no swift-container-sync
     if get_os_codename_package("swift-container") < "icehouse":
-        services.pop("swift-container-sync")
+        services.remove("swift-container-sync")
     return services
 
 
