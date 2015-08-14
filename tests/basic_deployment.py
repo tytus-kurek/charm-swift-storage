@@ -537,7 +537,12 @@ class SwiftStorageBasicDeployment(OpenStackAmuletDeployment):
 
         self._assert_services(should_run=True)
 
-    def test_actions(self):
-        """Pause and then resume swift-storage."""
+    def test_z_actions(self):
+        """Pause and then resume swift-storage.
+
+           Note(sparkiegeek): The method name with the _z_ is a little odd
+           but it forces the test to run last.  It just makes things
+           easier because restarting services requires re-authorization.
+        """
         self._test_pause()
         self._test_resume()
