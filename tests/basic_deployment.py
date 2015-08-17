@@ -502,7 +502,7 @@ class SwiftStorageBasicDeployment(OpenStackAmuletDeployment):
         # service is left paused by _test_pause
         self._assert_services(should_run=False)
         resume_action_id = u.run_action(self.swift_storage_sentry, "resume")
-        assert self._wait_on_action(resume_action_id), "Resume action failed."
+        assert u.wait_on_action(resume_action_id), "Resume action failed."
 
         self._assert_services(should_run=True)
 
