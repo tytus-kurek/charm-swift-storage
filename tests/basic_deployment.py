@@ -480,18 +480,14 @@ class SwiftStorageBasicDeployment(OpenStackAmuletDeployment):
                                   'swift-object-updater']
         if self._get_openstack_release() < self.precise_icehouse:
             swift_storage_services.remove('swift-container-sync')
-        # We can't use validate_unit_process_ids and friends because
-        # 1) they don't use -x on pidof, so can't find scripts
-        # 2) they will fail straight away if the process isn't running (
-        #    a desired state of a paused system)
-        commands = [
-            "pidof -x {}".format(svc) for svc in swift_storage_services]
-        if not should_run:
-            commands = ["{} || exit 0 && exit 1".format(cmd)
-                        for cmd in commands]
-        ret = u.check_commands_on_units(commands, [self.swift_storage_sentry])
-        if ret:
-            amulet.raise_status(amulet.FAIL, msg=ret)
+
+        u.get_unit_process_ids(
+            {self.swift_storage_sentry: swift_storage_services},
+            expect_success=should_run)
+        # No point using validate_unit_process_ids, since we don't
+        # care about how many PIDs, merely that they're running, so
+        # would populate expected with either True or False. This
+        # validation is already performed in get_process_id_list
 
     def _test_pause(self):
         u.log.info("Testing pause action")
