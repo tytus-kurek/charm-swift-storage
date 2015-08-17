@@ -143,7 +143,7 @@ class SwiftStorageBasicDeployment(OpenStackAmuletDeployment):
             self.swift_storage_sentry: swift_storage_services
         }
 
-        ret = u.validate_service_by_name(service_names)
+        ret = u.validate_services_by_name(service_names)
         if ret:
             amulet.raise_status(amulet.FAIL, msg=ret)
 
