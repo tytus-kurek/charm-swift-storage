@@ -1,4 +1,4 @@
-branch: lp:~adam-collard/charm-helpers/amulet-action-helpers
+branch: lp:~adam-collard/charm-helpers/amulet-get-process-id-list-fixes
 destination: tests/charmhelpers
 include:
     - contrib.amulet
