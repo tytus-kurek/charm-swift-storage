@@ -492,8 +492,7 @@ class SwiftStorageBasicDeployment(OpenStackAmuletDeployment):
     def _test_pause(self):
         u.log.info("Testing pause action")
         self._assert_services(should_run=True)
-        unit_name = self.swift_storage_sentry.info["unit_name"]
-        pause_action_id = u.run_action(unit_name, "pause")
+        pause_action_id = u.run_action(self.swift_storage_sentry, "pause")
         assert u.wait_on_action(pause_action_id), "Pause action failed."
 
         self._assert_services(should_run=False)
@@ -502,9 +501,8 @@ class SwiftStorageBasicDeployment(OpenStackAmuletDeployment):
         u.log.info("Testing resume action")
         # service is left paused by _test_pause
         self._assert_services(should_run=False)
-        unit_name = self.swift_storage_sentry.info["unit_name"]
-        pause_action_id = self._run_action(unit_name, "resume")
-        assert self._wait_on_action(pause_action_id), "Resume action failed."
+        resume_action_id = u.run_action(self.swift_storage_sentry, "resume")
+        assert self._wait_on_action(resume_action_id), "Resume action failed."
 
         self._assert_services(should_run=True)
 
