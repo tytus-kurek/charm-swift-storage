@@ -7,5 +7,6 @@ sudo apt-get update --yes
 sudo apt-get install --yes python-amulet \
                            python-swiftclient \
                            python-glanceclient \
+                           python-heatclient \
                            python-keystoneclient \
                            python-novaclient
