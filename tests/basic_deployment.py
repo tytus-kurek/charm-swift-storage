@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 import amulet
 import swiftclient
 
@@ -122,29 +120,30 @@ class SwiftStorageBasicDeployment(OpenStackAmuletDeployment):
     def test_services(self):
         """Verify the expected services are running on the corresponding
            service units."""
-        swift_storage_services = ['status swift-account',
-                                  'status swift-account-auditor',
-                                  'status swift-account-reaper',
-                                  'status swift-account-replicator',
-                                  'status swift-container',
-                                  'status swift-container-auditor',
-                                  'status swift-container-replicator',
-                                  'status swift-container-updater',
-                                  'status swift-object',
-                                  'status swift-object-auditor',
-                                  'status swift-object-replicator',
-                                  'status swift-object-updater']
+        swift_storage_services = ['swift-account',
+                                  'swift-account-auditor',
+                                  'swift-account-reaper',
+                                  'swift-account-replicator',
+                                  'swift-container',
+                                  'swift-container-auditor',
+                                  'swift-container-replicator',
+                                  'swift-container-updater',
+                                  'swift-object',
+                                  'swift-object-auditor',
+                                  'swift-object-replicator',
+                                  'swift-object-updater']
         if self._get_openstack_release() >= self.precise_icehouse:
-            swift_storage_services.append('status swift-container-sync')
-        commands = {
-            self.mysql_sentry: ['status mysql'],
-            self.keystone_sentry: ['status keystone'],
-            self.glance_sentry: ['status glance-registry', 'status glance-api'],
-            self.swift_proxy_sentry: ['status swift-proxy'],
+            swift_storage_services.append('swift-container-sync')
+        service_names = {
+            self.mysql_sentry: ['mysql'],
+            self.keystone_sentry: ['keystone'],
+            self.glance_sentry: [
+                'glance-registry', 'glance-api'],
+            self.swift_proxy_sentry: ['swift-proxy'],
             self.swift_storage_sentry: swift_storage_services
         }
 
-        ret = u.validate_services(commands)
+        ret = u.validate_services_by_name(service_names)
         if ret:
             amulet.raise_status(amulet.FAIL, msg=ret)
 
