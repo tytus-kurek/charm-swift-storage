@@ -3,5 +3,6 @@
 exclude_lines =
     if __name__ == .__main__.:
 include=
+    actions/actions.py
     hooks/swift_storage_*
     lib/swift_storage_*
