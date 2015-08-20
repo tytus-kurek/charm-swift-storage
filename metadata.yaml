@@ -4,6 +4,7 @@ summary: "Swift storage node"
 description: |
   Contains swift-object, swift-container and swift-account servers.
 categories:
+    - openstack
     - file-servers
 provides:
   nrpe-external-master:
