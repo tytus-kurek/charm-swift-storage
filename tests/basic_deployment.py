@@ -119,9 +119,10 @@ class SwiftStorageBasicDeployment(OpenStackAmuletDeployment):
                                          password='password',
                                          tenant=self.demo_tenant)
 
-    def test_services(self):
+    def test_100_services(self):
         """Verify the expected services are running on the corresponding
            service units."""
+        u.log.debug('Checking system services...')
         swift_storage_services = ['swift-account',
                                   'swift-account-auditor',
                                   'swift-account-reaper',
@@ -149,8 +150,9 @@ class SwiftStorageBasicDeployment(OpenStackAmuletDeployment):
         if ret:
             amulet.raise_status(amulet.FAIL, msg=ret)
 
-    def test_users(self):
+    def test_104_users(self):
         """Verify all existing roles."""
+        u.log.debug('Checking keystone users...')
         user1 = {'name': 'demoUser',
                  'enabled': True,
                  'tenantId': u.not_null,
@@ -178,8 +180,9 @@ class SwiftStorageBasicDeployment(OpenStackAmuletDeployment):
         if ret:
             amulet.raise_status(amulet.FAIL, msg=ret)
 
-    def test_service_catalog(self):
+    def test_106_service_catalog(self):
         """Verify that the service catalog endpoint data is valid."""
+        u.log.debug('Checking keystone service catalog...')
         endpoint_vol = {'adminURL': u.valid_url,
                         'region': 'RegionOne',
                         'publicURL': u.valid_url,
@@ -199,8 +202,9 @@ class SwiftStorageBasicDeployment(OpenStackAmuletDeployment):
         if ret:
             amulet.raise_status(amulet.FAIL, msg=ret)
 
-    def test_openstack_object_store_endpoint(self):
+    def test_108_swift_object_store_endpoint(self):
         """Verify the swift object-store endpoint data."""
+        u.log.debug('Checking keystone endpoint for swift object store...')
         endpoints = self.keystone.endpoints.list()
         admin_port = internal_port = public_port = '8080'
         expected = {'id': u.not_null,
@@ -216,9 +220,10 @@ class SwiftStorageBasicDeployment(OpenStackAmuletDeployment):
             message = 'object-store endpoint: {}'.format(ret)
             amulet.raise_status(amulet.FAIL, msg=message)
 
-    def test_swift_storage_swift_storage_relation(self):
+    def test_200_swift_storage_swift_storage_relation(self):
         """Verify the swift-storage to swift-proxy swift-storage relation
            data."""
+        u.log.debug('Checking swift:swift-proxy swift-storage relation...')
         unit = self.swift_storage_sentry
         relation = ['swift-storage', 'swift-proxy:swift-storage']
         expected = {
@@ -235,9 +240,10 @@ class SwiftStorageBasicDeployment(OpenStackAmuletDeployment):
             message = u.relation_error('swift-storage swift-storage', ret)
             amulet.raise_status(amulet.FAIL, msg=message)
 
-    def test_swift_proxy_swift_storage_relation(self):
+    def test_202_swift_proxy_swift_storage_relation(self):
         """Verify the swift-proxy to swift-storage swift-storage relation
            data."""
+        u.log.debug('Checking swift-proxy:swift swift-storage relation...')
         unit = self.swift_proxy_sentry
         relation = ['swift-storage', 'swift-storage:swift-storage']
         expected = {
@@ -252,56 +258,10 @@ class SwiftStorageBasicDeployment(OpenStackAmuletDeployment):
             message = u.relation_error('swift-proxy swift-storage', ret)
             amulet.raise_status(amulet.FAIL, msg=message)
 
-    def test_z_restart_on_config_change(self):
-        """Verify that the specified services are restarted when the config
-           is changed.
-
-           Note(coreycb): The method name with the _z_ is a little odd
-           but it forces the test to run last.  It just makes things
-           easier because restarting services requires re-authorization.
-           """
-        # NOTE(coreycb): Skipping failing test on until resolved. This test
-        #                fails because the config file's last mod time is
-        #                slightly after the process' last mod time.
-        if self._get_openstack_release() >= self.precise_essex:
-            u.log.error("Skipping failing test until resolved")
-            return
-
-        services = {'swift-account-server': 'account-server.conf',
-                    'swift-account-auditor': 'account-server.conf',
-                    'swift-account-reaper': 'account-server.conf',
-                    'swift-account-replicator': 'account-server.conf',
-                    'swift-container-server': 'container-server.conf',
-                    'swift-container-auditor': 'container-server.conf',
-                    'swift-container-replicator': 'container-server.conf',
-                    'swift-container-updater': 'container-server.conf',
-                    'swift-object-server': 'object-server.conf',
-                    'swift-object-auditor': 'object-server.conf',
-                    'swift-object-replicator': 'object-server.conf',
-                    'swift-object-updater': 'object-server.conf'}
-        if self._get_openstack_release() >= self.precise_icehouse:
-            services['swift-container-sync'] = 'container-server.conf'
-
-        self.d.configure('swift-storage',
-                         {'object-server-threads-per-disk': '2'})
-
-        time = 20
-        for s, conf in services.iteritems():
-            config = '/etc/swift/{}'.format(conf)
-            if not u.service_restarted(self.swift_storage_sentry, s, config,
-                                       pgrep_full=True, sleep_time=time):
-                self.d.configure('swift-storage',
-                                 {'object-server-threads-per-disk': '4'})
-                msg = "service {} didn't restart after config change".format(s)
-                amulet.raise_status(amulet.FAIL, msg=msg)
-            time = 0
-
-        self.d.configure('swift-storage',
-                         {'object-server-threads-per-disk': '4'})
-
-    def test_swift_config(self):
+    def test_300_swift_config(self):
         """Verify the data in the swift-hash section of the swift config
            file."""
+        u.log.debug('Checking swift config...')
         unit = self.swift_storage_sentry
         conf = '/etc/swift/swift.conf'
         swift_proxy_relation = self.swift_proxy_sentry.relation(
@@ -315,8 +275,9 @@ class SwiftStorageBasicDeployment(OpenStackAmuletDeployment):
             message = "swift config error: {}".format(ret)
             amulet.raise_status(amulet.FAIL, msg=message)
 
-    def test_account_server_config(self):
+    def test_302_account_server_config(self):
         """Verify the data in the account server config file."""
+        u.log.debug('Checking swift account-server config...')
         unit = self.swift_storage_sentry
         conf = '/etc/swift/account-server.conf'
         expected = {
@@ -343,8 +304,9 @@ class SwiftStorageBasicDeployment(OpenStackAmuletDeployment):
                 message = "account server config error: {}".format(ret)
                 amulet.raise_status(amulet.FAIL, msg=message)
 
-    def test_container_server_config(self):
+    def test_304_container_server_config(self):
         """Verify the data in the container server config file."""
+        u.log.debug('Checking swift container-server config...')
         unit = self.swift_storage_sentry
         conf = '/etc/swift/container-server.conf'
         expected = {
@@ -372,8 +334,9 @@ class SwiftStorageBasicDeployment(OpenStackAmuletDeployment):
                 message = "container server config error: {}".format(ret)
                 amulet.raise_status(amulet.FAIL, msg=message)
 
-    def test_object_server_config(self):
+    def test_306_object_server_config(self):
         """Verify the data in the object server config file."""
+        u.log.debug('Checking swift object-server config...')
         unit = self.swift_storage_sentry
         conf = '/etc/swift/object-server.conf'
         expected = {
@@ -404,35 +367,15 @@ class SwiftStorageBasicDeployment(OpenStackAmuletDeployment):
                 message = "object server config error: {}".format(ret)
                 amulet.raise_status(amulet.FAIL, msg=message)
 
-    def test_image_create(self):
+    def test_400_image_create(self):
         """Create an instance in glance, which is backed by swift, and validate
-           that some of the metadata for the image match in glance and swift.
-        """
-        # NOTE(coreycb): Skipping failing test on folsom until resolved. On
-        #                folsom only, uploading an image to glance gets 400 Bad
-        #                Request - Error uploading image: (error): [Errno 111]
-        #                ECONNREFUSED (HTTP 400)
-        if self._get_openstack_release() == self.precise_folsom:
-            u.log.error("Skipping failing test until resolved")
-            return
+        that some of the metadata for the image match in glance and swift."""
 
-        # Create glance image
-        image = u.create_cirros_image(self.glance, "cirros-image")
-        if not image:
-            amulet.raise_status(amulet.FAIL, msg="Image create failed")
-
-        # Validate that cirros image exists in glance and get its checksum/size
-        images = list(self.glance.images.list())
-        if len(images) != 1:
-            msg = "Expected 1 glance image, found {}".format(len(images))
-            amulet.raise_status(amulet.FAIL, msg=msg)
-
-        if images[0].name != 'cirros-image':
-            message = "cirros image does not exist"
-            amulet.raise_status(amulet.FAIL, msg=message)
-
-        glance_image_md5 = image.checksum
-        glance_image_size = image.size
+        # Create swift-backed glance image
+        img_new = u.create_cirros_image(self.glance, "cirros-image-1")
+        img_id = img_new.id
+        img_md5 = img_new.checksum
+        img_size = img_new.size
 
         # Validate that swift object's checksum/size match that from glance
         headers, containers = self.swift.get_account()
@@ -451,18 +394,64 @@ class SwiftStorageBasicDeployment(OpenStackAmuletDeployment):
         swift_object_size = objects[0].get('bytes')
         swift_object_md5 = objects[0].get('hash')
 
-        if glance_image_size != swift_object_size:
+        if img_size != swift_object_size:
             msg = "Glance image size {} != swift object size {}".format(
-                glance_image_size, swift_object_size)
+                img_size, swift_object_size)
             amulet.raise_status(amulet.FAIL, msg=msg)
 
-        if glance_image_md5 != swift_object_md5:
+        if img_md5 != swift_object_md5:
             msg = "Glance image hash {} != swift object hash {}".format(
-                glance_image_md5, swift_object_md5)
+                img_md5, swift_object_md5)
             amulet.raise_status(amulet.FAIL, msg=msg)
 
         # Cleanup
-        u.delete_image(self.glance, image)
+        u.delete_resource(self.glance.images, img_id, msg="glance image")
+
+    def test_900_restart_on_config_change(self):
+        """Verify that the specified services are restarted when the config
+           is changed."""
+        sentry = self.swift_storage_sentry
+        juju_service = 'swift-storage'
+
+        # Expected default and alternate values
+        set_default = {'object-server-threads-per-disk': '4'}
+        set_alternate = {'object-server-threads-per-disk': '2'}
+
+        # Config file affected by juju set config change, and
+        # services which are expected to restart upon config change
+        services = {'swift-account-server': 'account-server.conf',
+                    'swift-account-auditor': 'account-server.conf',
+                    'swift-account-reaper': 'account-server.conf',
+                    'swift-account-replicator': 'account-server.conf',
+                    'swift-container-server': 'container-server.conf',
+                    'swift-container-auditor': 'container-server.conf',
+                    'swift-container-replicator': 'container-server.conf',
+                    'swift-container-updater': 'container-server.conf',
+                    'swift-object-server': 'object-server.conf',
+                    'swift-object-auditor': 'object-server.conf',
+                    'swift-object-replicator': 'object-server.conf',
+                    'swift-object-updater': 'object-server.conf'}
+
+        if self._get_openstack_release() >= self.precise_icehouse:
+            services['swift-container-sync'] = 'container-server.conf'
+
+        # Make config change, check for service restarts
+        u.log.debug('Making config change on {}...'.format(juju_service))
+        self.d.configure(juju_service, set_alternate)
+
+        sleep_time = 40
+        for s, conf_file in services.iteritems():
+            u.log.debug("Checking that service restarted: {}".format(s))
+            conf_file_abs = '/etc/swift/{}'.format(conf_file)
+            if not u.service_restarted(sentry, s, conf_file_abs,
+                                       pgrep_full=True,
+                                       sleep_time=sleep_time):
+                self.d.configure(juju_service, set_default)
+                msg = "service {} didn't restart after config change".format(s)
+                amulet.raise_status(amulet.FAIL, msg=msg)
+            sleep_time = 0
+
+        self.d.configure(juju_service, set_default)
 
     def _assert_services(self, should_run):
         swift_storage_services = ['swift-account-auditor',
@@ -506,12 +495,8 @@ class SwiftStorageBasicDeployment(OpenStackAmuletDeployment):
 
         self._assert_services(should_run=True)
 
-    def test_z_actions(self):
-        """Pause and then resume swift-storage.
-
-           Note(sparkiegeek): The method name with the _z_ is a little odd
-           but it forces the test to run last.  It just makes things
-           easier because restarting services requires re-authorization.
-        """
+    def test_910_pause_resume_actions(self):
+        """Pause and then resume swift-storage."""
+        u.log.debug('Checking pause/resume actions...')
         self._test_pause()
         self._test_resume()
