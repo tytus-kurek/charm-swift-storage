@@ -3,7 +3,7 @@ maintainer: Adam Gandelman <adamg@canonical.com>
 summary: "Swift storage node"
 description: |
   Contains swift-object, swift-container and swift-account servers.
-categories:
+tags:
     - openstack
     - file-servers
 provides:

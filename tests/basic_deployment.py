@@ -1,5 +1,6 @@
 import amulet
 import swiftclient
+import time
 
 from charmhelpers.contrib.openstack.amulet.deployment import (
     OpenStackAmuletDeployment
@@ -78,6 +79,14 @@ class SwiftStorageBasicDeployment(OpenStackAmuletDeployment):
         self.swift_proxy_sentry = self.d.sentry.unit['swift-proxy/0']
         self.swift_storage_sentry = self.d.sentry.unit['swift-storage/0']
 
+        u.log.debug('openstack release val: {}'.format(
+            self._get_openstack_release()))
+        u.log.debug('openstack release str: {}'.format(
+            self._get_openstack_release_string()))
+
+        # Let things settle a bit before moving forward
+        time.sleep(30)
+
         # Authenticate admin with keystone
         self.keystone = u.authenticate_keystone_admin(self.keystone_sentry,
                                                       user='admin',
@@ -140,8 +149,8 @@ class SwiftStorageBasicDeployment(OpenStackAmuletDeployment):
         service_names = {
             self.mysql_sentry: ['mysql'],
             self.keystone_sentry: ['keystone'],
-            self.glance_sentry: [
-                'glance-registry', 'glance-api'],
+            self.glance_sentry: ['glance-registry',
+                                 'glance-api'],
             self.swift_proxy_sentry: ['swift-proxy'],
             self.swift_storage_sentry: swift_storage_services
         }
@@ -150,7 +159,7 @@ class SwiftStorageBasicDeployment(OpenStackAmuletDeployment):
         if ret:
             amulet.raise_status(amulet.FAIL, msg=ret)
 
-    def test_104_users(self):
+    def test_102_users(self):
         """Verify all existing roles."""
         u.log.debug('Checking keystone users...')
         user1 = {'name': 'demoUser',
@@ -180,20 +189,15 @@ class SwiftStorageBasicDeployment(OpenStackAmuletDeployment):
         if ret:
             amulet.raise_status(amulet.FAIL, msg=ret)
 
-    def test_106_service_catalog(self):
+    def test_104_keystone_service_catalog(self):
         """Verify that the service catalog endpoint data is valid."""
         u.log.debug('Checking keystone service catalog...')
-        endpoint_vol = {'adminURL': u.valid_url,
-                        'region': 'RegionOne',
-                        'publicURL': u.valid_url,
-                        'internalURL': u.valid_url}
         endpoint_id = {'adminURL': u.valid_url,
                        'region': 'RegionOne',
                        'publicURL': u.valid_url,
-                       'internalURL': u.valid_url}
-        if self._get_openstack_release() >= self.precise_folsom:
-            endpoint_vol['id'] = u.not_null
-            endpoint_id['id'] = u.not_null
+                       'internalURL': u.valid_url,
+                       'id': u.not_null}
+
         expected = {'image': [endpoint_id], 'object-store': [endpoint_id],
                     'identity': [endpoint_id]}
         actual = self.keystone_demo.service_catalog.get_endpoints()
@@ -202,7 +206,7 @@ class SwiftStorageBasicDeployment(OpenStackAmuletDeployment):
         if ret:
             amulet.raise_status(amulet.FAIL, msg=ret)
 
-    def test_108_swift_object_store_endpoint(self):
+    def test_106_swift_object_store_endpoint(self):
         """Verify the swift object-store endpoint data."""
         u.log.debug('Checking keystone endpoint for swift object store...')
         endpoints = self.keystone.endpoints.list()
@@ -367,9 +371,11 @@ class SwiftStorageBasicDeployment(OpenStackAmuletDeployment):
                 message = "object server config error: {}".format(ret)
                 amulet.raise_status(amulet.FAIL, msg=message)
 
-    def test_400_image_create(self):
+    def test_400_swift_backed_image_create(self):
         """Create an instance in glance, which is backed by swift, and validate
         that some of the metadata for the image match in glance and swift."""
+        u.log.debug('Checking swift objects and containers with a '
+                    'swift-backed glance image...')
 
         # Create swift-backed glance image
         img_new = u.create_cirros_image(self.glance, "cirros-image-1")
@@ -406,10 +412,13 @@ class SwiftStorageBasicDeployment(OpenStackAmuletDeployment):
 
         # Cleanup
         u.delete_resource(self.glance.images, img_id, msg="glance image")
+        u.log.info('OK')
 
     def test_900_restart_on_config_change(self):
         """Verify that the specified services are restarted when the config
            is changed."""
+        u.log.info('Checking that conf files and system services respond '
+                   'to a charm config change...')
         sentry = self.swift_storage_sentry
         juju_service = 'swift-storage'
 
@@ -430,22 +439,22 @@ class SwiftStorageBasicDeployment(OpenStackAmuletDeployment):
                     'swift-object-server': 'object-server.conf',
                     'swift-object-auditor': 'object-server.conf',
                     'swift-object-replicator': 'object-server.conf',
-                    'swift-object-updater': 'object-server.conf'}
-
-        if self._get_openstack_release() >= self.precise_icehouse:
-            services['swift-container-sync'] = 'container-server.conf'
+                    'swift-object-updater': 'object-server.conf',
+                    'swift-container-sync': 'container-server.conf'}
 
         # Make config change, check for service restarts
         u.log.debug('Making config change on {}...'.format(juju_service))
+        mtime = u.get_sentry_time(sentry)
         self.d.configure(juju_service, set_alternate)
 
         sleep_time = 40
         for s, conf_file in services.iteritems():
             u.log.debug("Checking that service restarted: {}".format(s))
             conf_file_abs = '/etc/swift/{}'.format(conf_file)
-            if not u.service_restarted(sentry, s, conf_file_abs,
-                                       pgrep_full=True,
-                                       sleep_time=sleep_time):
+            if not u.validate_service_config_changed(sentry, mtime, s,
+                                                     conf_file_abs,
+                                                     sleep_time=sleep_time,
+                                                     pgrep_full=True):
                 self.d.configure(juju_service, set_default)
                 msg = "service {} didn't restart after config change".format(s)
                 amulet.raise_status(amulet.FAIL, msg=msg)
