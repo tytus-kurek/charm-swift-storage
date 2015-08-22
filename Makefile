@@ -28,4 +28,4 @@ publish: lint test
 	bzr push lp:charms/swift-storage
 	bzr push lp:charms/trusty/swift-storage
 
-.PHONY: lint unit_test test sync publish
+.PHONY: lint test functional_test sync publish

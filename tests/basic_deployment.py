@@ -1,6 +1,7 @@
+import time
+
 import amulet
 import swiftclient
-import time
 
 from charmhelpers.contrib.openstack.amulet.deployment import (
     OpenStackAmuletDeployment
