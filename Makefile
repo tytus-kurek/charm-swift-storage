@@ -2,20 +2,17 @@
 PYTHON := /usr/bin/env python
 
 lint:
-	@flake8 lib
-	@flake8 hooks
-	@flake8 unit_tests tests
+	@flake8 --exclude hooks/charmhelpers,tests/charmhelpers \
+        actions lib hooks unit_tests tests
 	@charm proof
 
-unit_test:
+test:
+	@# Bundletester expects unit tests here.
 	@echo Starting unit tests...
 	@$(PYTHON) /usr/bin/nosetests -v --nologcapture --with-coverage unit_tests
 
-test:
+functional_test:
 	@echo Starting Amulet tests...
-	# coreycb note: The -v should only be temporary until Amulet sends
-	# raise_status() messages to stderr:
-	#   https://bugs.launchpad.net/amulet/+bug/1320357
 	@juju test -v -p AMULET_HTTP_PROXY,AMULET_OS_VIP --timeout 2700
 
 bin/charm_helpers_sync.py:
@@ -31,4 +28,4 @@ publish: lint test
 	bzr push lp:charms/swift-storage
 	bzr push lp:charms/trusty/swift-storage
 
-.PHONY: lint unit_test test sync publish
+.PHONY: lint test functional_test sync publish
