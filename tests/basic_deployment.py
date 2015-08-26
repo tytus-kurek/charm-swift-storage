@@ -541,7 +541,7 @@ class SwiftStorageBasicDeployment(OpenStackAmuletDeployment):
 
         # Pause the unit
         u.log.debug('Pausing the unit...')
-        pause_action_id = u.run_action(self.swift_storage_sentry, "pause")
+        pause_action_id = u.run_action(sentry, "pause")
         assert u.wait_on_action(pause_action_id), "Pause action failed."
 
         # Make config change, check for service restarts
@@ -549,7 +549,7 @@ class SwiftStorageBasicDeployment(OpenStackAmuletDeployment):
         mtime = u.get_sentry_time(sentry)
         self.d.configure(juju_service, set_alternate)
 
-        sleep_time = 40
+        sleep_time = 80
         for service in services:
             u.log.debug("Checking that service didn't restart while "
                         "paused: {}".format(service))
@@ -567,5 +567,5 @@ class SwiftStorageBasicDeployment(OpenStackAmuletDeployment):
             sleep_time = 0
 
         self.d.configure(juju_service, set_default)
-        resume_action_id = u.run_action(self.swift_storage_sentry, "resume")
+        resume_action_id = u.run_action(sentry, "resume")
         assert u.wait_on_action(resume_action_id), "Resume action failed."
