@@ -22,6 +22,7 @@ from charmhelpers.core.hookenv import (
     Hooks, UnregisteredHookError,
     config,
     log,
+    status_get,
     relation_get,
     relation_set,
     relations_of_type,
@@ -52,6 +53,22 @@ NAGIOS_PLUGINS = '/usr/local/lib/nagios/plugins'
 SUDOERS_D = '/etc/sudoers.d'
 
 
+def is_paused(status_get=status_get):
+    """Is the unit paused?"""
+    status, message = status_get(with_message=True)
+    return status == "maintenance" and message.startswith("Paused")
+
+
+def pause_aware_restart_on_change(restart_map):
+    """Avoids restarting services if config changes when unit is paused."""
+    def wrapper(f):
+        if is_paused():
+            return f
+        else:
+            return restart_on_change(restart_map)(f)
+    return wrapper
+
+
 @hooks.hook()
 def install():
     execd_preinstall()
@@ -63,7 +80,7 @@ def install():
 
 
 @hooks.hook('config-changed')
-@restart_on_change(RESTART_MAP)
+@pause_aware_restart_on_change(RESTART_MAP)
 def config_changed():
     if config('prefer-ipv6'):
         assert_charm_supports_ipv6()
@@ -104,7 +121,7 @@ def swift_storage_relation_joined():
 
 
 @hooks.hook('swift-storage-relation-changed')
-@restart_on_change(RESTART_MAP)
+@pause_aware_restart_on_change(RESTART_MAP)
 def swift_storage_relation_changed():
     rings_url = relation_get('rings_url')
     swift_hash = relation_get('swift_hash')
