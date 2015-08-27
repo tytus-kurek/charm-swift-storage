@@ -1,4 +1,4 @@
-branch: lp:charm-helpers
+branch: lp:~adam-collard/charm-helpers/status-get-message
 destination: charmhelpers
 include:
     - core
