@@ -55,7 +55,7 @@ SUDOERS_D = '/etc/sudoers.d'
 
 def is_paused(status_get=status_get):
     """Is the unit paused?"""
-    status, message = status_get(with_message=True)
+    status, message = status_get()
     return status == "maintenance" and message.startswith("Paused")
 
 
