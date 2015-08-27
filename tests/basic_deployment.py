@@ -554,7 +554,8 @@ class SwiftStorageBasicDeployment(OpenStackAmuletDeployment):
             u.log.debug("Checking that service didn't restart while "
                         "paused: {}".format(service))
             restarted = u.service_restarted_since(
-                sentry, mtime, service, sleep_time=sleep_time, pgrep_full=True)
+                sentry, mtime, service, sleep_time=sleep_time, pgrep_full=True,
+                retry_count=0)
             if restarted:
                 self.d.configure(juju_service, set_default)
                 # If the services have restarted, resuming will
