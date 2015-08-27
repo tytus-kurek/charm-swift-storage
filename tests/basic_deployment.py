@@ -546,31 +546,14 @@ class SwiftStorageBasicDeployment(OpenStackAmuletDeployment):
 
         # Make config change, check for service restarts
         u.log.debug('Making config change on {}...'.format(juju_service))
-        mtime = u.get_sentry_time(sentry)
         self.d.configure(juju_service, set_alternate)
 
-        sleep_time = 40
         for service in services:
-            u.log.debug("Checking that service didn't restart while "
+            u.log.debug("Checking that service didn't start while "
                         "paused: {}".format(service))
-            restarted = u.service_restarted_since(
-                sentry, mtime, service, sleep_time=sleep_time, pgrep_full=True,
-                retry_count=0)
-            if restarted:
-                self.d.configure(juju_service, set_default)
-                # If the services have restarted, resuming will
-                # fail. Let's re-pause to stop them, allowing a clean recovery.
-                pause_action_id = u.run_action(sentry, "pause")
-                assert u.wait_on_action(pause_action_id), (
-                    "Pause action failed.")
-                resume_action_id = u.run_action(
-                    self.swift_storage_sentry, "resume")
-                assert u.wait_on_action(resume_action_id), (
-                    "Resume action failed.")
-                msg = ("service {} restarted after config change"
-                       " while paused".format(service))
-                amulet.raise_status(amulet.FAIL, msg=msg)
-            sleep_time = 0
+            # No explicit assert because get_process_id_list will do it for us
+            u.get_process_id_list(
+                sentry, service, expect_success=False)
 
         self.d.configure(juju_service, set_default)
         resume_action_id = u.run_action(sentry, "resume")
