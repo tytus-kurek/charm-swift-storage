@@ -10,6 +10,7 @@ from subprocess import check_call, call, CalledProcessError
 from misc_utils import (
     ensure_block_device,
     clean_storage,
+    is_paused
 )
 
 from swift_storage_context import (
@@ -151,8 +152,9 @@ def do_openstack_upgrade(configs):
     apt_upgrade(options=dpkg_opts, fatal=True, dist=True)
     configs.set_release(openstack_release=new_os_rel)
     configs.write_all()
-    [service_restart(svc) for svc in
-     (ACCOUNT_SVCS + CONTAINER_SVCS + OBJECT_SVCS)]
+    if not is_paused():
+        [service_restart(svc) for svc in
+         (ACCOUNT_SVCS + CONTAINER_SVCS + OBJECT_SVCS)]
 
 
 def _is_storage_ready(partition):
