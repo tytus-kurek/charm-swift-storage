@@ -18,11 +18,12 @@ from lib.swift_storage_utils import (
     setup_rsync,
 )
 
+from lib.misc_utils import pause_aware_restart_on_change
+
 from charmhelpers.core.hookenv import (
     Hooks, UnregisteredHookError,
     config,
     log,
-    status_get,
     relation_get,
     relation_set,
     relations_of_type,
@@ -33,7 +34,7 @@ from charmhelpers.fetch import (
     apt_update,
     filter_installed_packages
 )
-from charmhelpers.core.host import restart_on_change, rsync
+from charmhelpers.core.host import rsync
 from charmhelpers.payload.execd import execd_preinstall
 
 from charmhelpers.contrib.openstack.utils import (
@@ -51,22 +52,6 @@ hooks = Hooks()
 CONFIGS = register_configs()
 NAGIOS_PLUGINS = '/usr/local/lib/nagios/plugins'
 SUDOERS_D = '/etc/sudoers.d'
-
-
-def is_paused(status_get=status_get):
-    """Is the unit paused?"""
-    status, message = status_get()
-    return status == "maintenance" and message.startswith("Paused")
-
-
-def pause_aware_restart_on_change(restart_map):
-    """Avoids restarting services if config changes when unit is paused."""
-    def wrapper(f):
-        if is_paused():
-            return f
-        else:
-            return restart_on_change(restart_map)(f)
-    return wrapper
 
 
 @hooks.hook()
