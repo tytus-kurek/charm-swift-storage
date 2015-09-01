@@ -429,19 +429,10 @@ class SwiftStorageBasicDeployment(OpenStackAmuletDeployment):
 
         # Config file affected by juju set config change, and
         # services which are expected to restart upon config change
-        services = {'swift-account-server': 'account-server.conf',
-                    'swift-account-auditor': 'account-server.conf',
-                    'swift-account-reaper': 'account-server.conf',
-                    'swift-account-replicator': 'account-server.conf',
-                    'swift-container-server': 'container-server.conf',
-                    'swift-container-auditor': 'container-server.conf',
-                    'swift-container-replicator': 'container-server.conf',
-                    'swift-container-updater': 'container-server.conf',
-                    'swift-object-server': 'object-server.conf',
+        services = {'swift-object-server': 'object-server.conf',
                     'swift-object-auditor': 'object-server.conf',
                     'swift-object-replicator': 'object-server.conf',
-                    'swift-object-updater': 'object-server.conf',
-                    'swift-container-sync': 'container-server.conf'}
+                    'swift-object-updater': 'object-server.conf'}
 
         # Make config change, check for service restarts
         u.log.debug('Making config change on {}...'.format(juju_service))
