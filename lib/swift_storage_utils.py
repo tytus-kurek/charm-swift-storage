@@ -153,8 +153,8 @@ def do_openstack_upgrade(configs):
     configs.set_release(openstack_release=new_os_rel)
     configs.write_all()
     if not is_paused():
-        [service_restart(svc) for svc in
-         (ACCOUNT_SVCS + CONTAINER_SVCS + OBJECT_SVCS)]
+        for service in SWIFT_SVCS:
+            service_restart(service)
 
 
 def _is_storage_ready(partition):
