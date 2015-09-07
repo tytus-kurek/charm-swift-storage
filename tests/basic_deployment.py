@@ -501,3 +501,51 @@ class SwiftStorageBasicDeployment(OpenStackAmuletDeployment):
         u.log.debug('Checking pause/resume actions...')
         self._test_pause()
         self._test_resume()
+
+    def test_920_no_restart_on_config_change_when_paused(self):
+        """Verify that the specified services are not restarted when the config
+           is changed and the unit is paused."""
+        u.log.info('Checking that system services do not get restarted  '
+                   'when charm config changes but unit is paused...')
+        sentry = self.swift_storage_sentry
+        juju_service = 'swift-storage'
+
+        # Expected default and alternate values
+        set_default = {'object-server-threads-per-disk': '4'}
+        set_alternate = {'object-server-threads-per-disk': '2'}
+
+        services = ['swift-account-server',
+                    'swift-account-auditor',
+                    'swift-account-reaper',
+                    'swift-account-replicator',
+                    'swift-container-server',
+                    'swift-container-auditor',
+                    'swift-container-replicator',
+                    'swift-container-updater',
+                    'swift-object-server',
+                    'swift-object-auditor',
+                    'swift-object-replicator',
+                    'swift-object-updater',
+                    'swift-container-sync']
+        if self._get_openstack_release() < self.precise_icehouse:
+            services.remove('swift-container-sync')
+
+        # Pause the unit
+        u.log.debug('Pausing the unit...')
+        pause_action_id = u.run_action(sentry, "pause")
+        assert u.wait_on_action(pause_action_id), "Pause action failed."
+
+        # Make config change, check for service restarts
+        u.log.debug('Making config change on {}...'.format(juju_service))
+        self.d.configure(juju_service, set_alternate)
+
+        for service in services:
+            u.log.debug("Checking that service didn't start while "
+                        "paused: {}".format(service))
+            # No explicit assert because get_process_id_list will do it for us
+            u.get_process_id_list(
+                sentry, service, expect_success=False)
+
+        self.d.configure(juju_service, set_default)
+        resume_action_id = u.run_action(sentry, "resume")
+        assert u.wait_on_action(resume_action_id), "Resume action failed."
