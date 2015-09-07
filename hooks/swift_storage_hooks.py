@@ -18,6 +18,8 @@ from lib.swift_storage_utils import (
     setup_rsync,
 )
 
+from lib.misc_utils import pause_aware_restart_on_change
+
 from charmhelpers.core.hookenv import (
     Hooks, UnregisteredHookError,
     config,
@@ -32,7 +34,7 @@ from charmhelpers.fetch import (
     apt_update,
     filter_installed_packages
 )
-from charmhelpers.core.host import restart_on_change, rsync
+from charmhelpers.core.host import rsync
 from charmhelpers.payload.execd import execd_preinstall
 
 from charmhelpers.contrib.openstack.utils import (
@@ -63,7 +65,7 @@ def install():
 
 
 @hooks.hook('config-changed')
-@restart_on_change(RESTART_MAP)
+@pause_aware_restart_on_change(RESTART_MAP)
 def config_changed():
     if config('prefer-ipv6'):
         assert_charm_supports_ipv6()
@@ -104,7 +106,7 @@ def swift_storage_relation_joined():
 
 
 @hooks.hook('swift-storage-relation-changed')
-@restart_on_change(RESTART_MAP)
+@pause_aware_restart_on_change(RESTART_MAP)
 def swift_storage_relation_changed():
     rings_url = relation_get('rings_url')
     swift_hash = relation_get('swift_hash')

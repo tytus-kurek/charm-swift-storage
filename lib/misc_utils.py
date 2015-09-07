@@ -16,12 +16,14 @@ from charmhelpers.contrib.storage.linux.lvm import (
 from charmhelpers.core.host import (
     mounts,
     umount,
+    restart_on_change,
 )
 
 from charmhelpers.core.hookenv import (
     log,
     INFO,
     ERROR,
+    status_get,
 )
 
 DEFAULT_LOOPBACK_SIZE = '5G'
@@ -83,3 +85,19 @@ def clean_storage(block_device):
         remove_lvm_physical_volume(block_device)
     else:
         zap_disk(block_device)
+
+
+def is_paused(status_get=status_get):
+    """Is the unit paused?"""
+    status, message = status_get()
+    return status == "maintenance" and message.startswith("Paused")
+
+
+def pause_aware_restart_on_change(restart_map):
+    """Avoids restarting services if config changes when unit is paused."""
+    def wrapper(f):
+        if is_paused():
+            return f
+        else:
+            return restart_on_change(restart_map)(f)
+    return wrapper
