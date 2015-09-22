@@ -54,7 +54,7 @@ NAGIOS_PLUGINS = '/usr/local/lib/nagios/plugins'
 SUDOERS_D = '/etc/sudoers.d'
 
 
-@hooks.hook()
+@hooks.hook('install.real')
 def install():
     execd_preinstall()
     configure_installation_source(config('openstack-origin'))
