@@ -2,4 +2,5 @@ pause:
   description: Pause the swift-storage unit. This action will stop Swift services.
 resume:
   description: Resume the swift-storage unit. This action will start Swift services.
-
+openstack-upgrade:
+  description: Perform openstack upgrades. Config option action-managed-upgrade must be set to True.
