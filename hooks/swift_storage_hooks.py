@@ -73,7 +73,8 @@ def config_changed():
     ensure_swift_directories()
     setup_rsync()
 
-    if openstack_upgrade_available('swift'):
+    if not config('action-managed-upgrade') and \
+            openstack_upgrade_available('swift'):
         do_openstack_upgrade(configs=CONFIGS)
     CONFIGS.write_all()
 
