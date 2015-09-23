@@ -83,6 +83,16 @@ class SwiftStorageRelationsTests(CharmTestCase):
         self.assertTrue(self.do_openstack_upgrade.called)
         self.assertTrue(self.CONFIGS.write_all.called)
 
+    def test_config_changed_with_openstack_upgrade_action(self):
+        self.openstack_upgrade_available.return_value = True
+        self.test_config.set('action-managed-upgrade', True)
+
+        with patch_open() as (_open, _file):
+            _file.read.return_value = "foo"
+            hooks.config_changed()
+
+        self.assertFalse(self.do_openstack_upgrade.called)
+
     def test_config_changed_nrpe_master(self):
         self.openstack_upgrade_available.return_value = False
         self.relations_of_type.return_value = True
