@@ -178,6 +178,7 @@ def get_mount_point(device):
         else:
             mnt_point = mnt_points[0]
     except CalledProcessError:
+        # findmnt returns non-zero rc if dev not mounted
         pass
     return mnt_point
 
@@ -202,19 +203,14 @@ def find_block_devices(include_mounted=False):
 
 def guess_block_devices():
     bdevs = find_block_devices(include_mounted=True)
-    print bdevs
     gdevs = []
     for dev in bdevs:
-        print dev
         if is_device_mounted(dev):
-            print "  .. is mounted"
             mnt_point = get_mount_point(dev)
             if mnt_point and mnt_point.startswith('/srv/node'):
                 gdevs.append(dev)
         else:
-            print "  .. is not mounted"
             gdevs.append(dev)
-    print gdevs
     return gdevs
 
 
