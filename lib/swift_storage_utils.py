@@ -174,12 +174,13 @@ def get_mount_point(device):
             if line and not line.startswith('TARGET'):
                 mnt_points.append(line.split()[0])
         if len(mnt_points) > 1:
-            log('Device {} mounted in multiple places, ignoring'.format(device))
+            log('Device {} mounted in multiple times, ignoring'.format(device))
         else:
             mnt_point = mnt_points[0]
     except CalledProcessError:
         pass
     return mnt_point
+
 
 def find_block_devices(include_mounted=False):
     found = []
@@ -198,17 +199,24 @@ def find_block_devices(include_mounted=False):
         devs = [f for f in found if _is_storage_ready(f)]
     return devs
 
+
 def guess_block_devices():
     bdevs = find_block_devices(include_mounted=True)
+    print bdevs
     gdevs = []
     for dev in bdevs:
+        print dev
         if is_device_mounted(dev):
+            print "  .. is mounted"
             mnt_point = get_mount_point(dev)
             if mnt_point and mnt_point.startswith('/srv/node'):
                 gdevs.append(dev)
         else:
+            print "  .. is not mounted"
             gdevs.append(dev)
+    print gdevs
     return gdevs
+
 
 def determine_block_devices():
     block_device = config('block-device')
