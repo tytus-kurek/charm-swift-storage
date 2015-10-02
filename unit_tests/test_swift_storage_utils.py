@@ -75,6 +75,11 @@ major minor  #blocks  name
    8       16  119454720 sdb1
 """
 
+FINDMNT_FOUND_TEMPLATE = """
+TARGET        SOURCE   FSTYPE OPTIONS
+{}           /dev/{} xfs    rw,relatime,attr2,inode64,noquota
+"""
+
 
 class SwiftStorageUtilsTests(CharmTestCase):
 
@@ -153,15 +158,42 @@ class SwiftStorageUtilsTests(CharmTestCase):
         ex = ['/dev/vdb', '/srv/swift.img']
         self.assertEqual(ex, result)
 
+    @patch.object(swift_utils, 'check_output')
     @patch.object(swift_utils, 'find_block_devices')
     @patch.object(swift_utils, 'ensure_block_device')
-    def test_determine_block_device_guess_dev(self, _ensure, _find):
+    def test_determine_block_device_guess_dev(self, _ensure, _find,
+                                              _check_output):
+        "Devices already mounted under /srv/node/ should be returned"
+        def _findmnt(cmd):
+            dev = cmd[1].split('/')[-1]
+            mnt_point = '/srv/node/' + dev
+            return FINDMNT_FOUND_TEMPLATE.format(mnt_point, dev)
+        _check_output.side_effect = _findmnt
         _ensure.side_effect = self._fake_ensure
         self.test_config.set('block-device', 'guess')
         _find.return_value = ['/dev/vdb', '/dev/sdb']
         result = swift_utils.determine_block_devices()
         self.assertTrue(_find.called)
         self.assertEquals(result, ['/dev/vdb', '/dev/sdb'])
+
+    @patch.object(swift_utils, 'check_output')
+    @patch.object(swift_utils, 'find_block_devices')
+    @patch.object(swift_utils, 'ensure_block_device')
+    def test_determine_block_device_guess_dev_not_eligable(self, _ensure,
+                                                           _find,
+                                                           _check_output):
+        "Devices not mounted under /srv/node/ should not be returned"
+        def _findmnt(cmd):
+            dev = cmd[1].split('/')[-1]
+            mnt_point = '/'
+            return FINDMNT_FOUND_TEMPLATE.format(mnt_point, dev)
+        _check_output.side_effect = _findmnt
+        _ensure.side_effect = self._fake_ensure
+        self.test_config.set('block-device', 'guess')
+        _find.return_value = ['/dev/vdb']
+        result = swift_utils.determine_block_devices()
+        self.assertTrue(_find.called)
+        self.assertEquals(result, [])
 
     def test_mkfs_xfs(self):
         swift_utils.mkfs_xfs('/dev/sdb')
