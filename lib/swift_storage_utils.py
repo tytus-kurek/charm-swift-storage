@@ -3,7 +3,7 @@ import re
 import shutil
 import tempfile
 
-from subprocess import check_call, call, CalledProcessError
+from subprocess import check_call, call, CalledProcessError, check_output
 
 # Stuff copied from cinder py charm, needs to go somewhere
 # common.
@@ -165,19 +165,53 @@ def _is_storage_ready(partition):
     return is_block_device(partition) and not is_device_mounted(partition)
 
 
-def find_block_devices():
+def get_mount_point(device):
+    mnt_point = None
+    try:
+        out = check_output(['findmnt', device])
+        mnt_points = []
+        for line in out.split('\n'):
+            if line and not line.startswith('TARGET'):
+                mnt_points.append(line.split()[0])
+        if len(mnt_points) > 1:
+            log('Device {} mounted in multiple times, ignoring'.format(device))
+        else:
+            mnt_point = mnt_points[0]
+    except CalledProcessError:
+        # findmnt returns non-zero rc if dev not mounted
+        pass
+    return mnt_point
+
+
+def find_block_devices(include_mounted=False):
     found = []
     incl = ['sd[a-z]', 'vd[a-z]', 'cciss\/c[0-9]d[0-9]']
 
     with open('/proc/partitions') as proc:
-        print proc
         partitions = [p.split() for p in proc.readlines()[2:]]
     for partition in [p[3] for p in partitions if p]:
         for inc in incl:
             _re = re.compile(r'^(%s)$' % inc)
             if _re.match(partition):
                 found.append(os.path.join('/dev', partition))
-    return [f for f in found if _is_storage_ready(f)]
+    if include_mounted:
+        devs = [f for f in found if is_block_device(f)]
+    else:
+        devs = [f for f in found if _is_storage_ready(f)]
+    return devs
+
+
+def guess_block_devices():
+    bdevs = find_block_devices(include_mounted=True)
+    gdevs = []
+    for dev in bdevs:
+        if is_device_mounted(dev):
+            mnt_point = get_mount_point(dev)
+            if mnt_point and mnt_point.startswith('/srv/node'):
+                gdevs.append(dev)
+        else:
+            gdevs.append(dev)
+    return gdevs
 
 
 def determine_block_devices():
@@ -189,7 +223,7 @@ def determine_block_devices():
         return None
 
     if block_device == 'guess':
-        bdevs = find_block_devices()
+        bdevs = guess_block_devices()
     else:
         bdevs = block_device.split(' ')
 
