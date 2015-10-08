@@ -38,6 +38,8 @@ from charmhelpers.core.hookenv import (
     INFO,
     ERROR,
     unit_private_ip,
+    relation_ids,
+    status_set,
 )
 
 from charmhelpers.contrib.storage.linux.utils import (
@@ -339,3 +341,12 @@ socket options = SO_KEEPALIVE
     f = open('/etc/rsyncd.conf', 'w')
     f.write(rsyncd_base)
     f.close()
+
+
+def assess_status():
+    """Assess status of current unit"""
+    # Check for required swift-storage relation to swift-proxy
+    if len(relation_ids('swift-storage')) < 1:
+        status_set('blocked', 'Missing relation: proxy')
+    else:
+        status_set('active', 'Unit is ready')
