@@ -17,6 +17,7 @@ from lib.swift_storage_utils import (
     setup_storage,
     assert_charm_supports_ipv6,
     setup_rsync,
+    REQUIRED_INTERFACES,
 )
 
 from lib.misc_utils import pause_aware_restart_on_change
@@ -42,6 +43,7 @@ from charmhelpers.payload.execd import execd_preinstall
 from charmhelpers.contrib.openstack.utils import (
     configure_installation_source,
     openstack_upgrade_available,
+    set_os_workload_status,
 )
 from charmhelpers.contrib.network.ip import (
     get_ipv6_addr
@@ -165,7 +167,8 @@ def main():
         hooks.execute(sys.argv)
     except UnregisteredHookError as e:
         log('Unknown hook {} - skipping.'.format(e))
-    assess_status()
+    set_os_workload_status(CONFIGS, REQUIRED_INTERFACES,
+                           charm_func=assess_status)
 
 
 if __name__ == '__main__':

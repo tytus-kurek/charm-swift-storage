@@ -39,7 +39,6 @@ from charmhelpers.core.hookenv import (
     ERROR,
     unit_private_ip,
     relation_ids,
-    status_set,
 )
 
 from charmhelpers.contrib.storage.linux.utils import (
@@ -69,6 +68,10 @@ PACKAGES = [
 ]
 
 TEMPLATES = 'templates/'
+
+REQUIRED_INTERFACES = {
+    'proxy': ['swift-storage'],
+}
 
 ACCOUNT_SVCS = [
     'swift-account', 'swift-account-auditor',
@@ -343,10 +346,13 @@ socket options = SO_KEEPALIVE
     f.close()
 
 
-def assess_status():
+def assess_status(configs):
     """Assess status of current unit"""
-    # Check for required swift-storage relation to swift-proxy
+    # Verify swift-hash received from swift-proxy
+    ctxt = SwiftStorageContext()()
     if len(relation_ids('swift-storage')) < 1:
-        status_set('blocked', 'Missing relation: proxy')
+        return '', ''
+    elif not ctxt or not ctxt['swift_hash']:
+        return 'blocked', 'Missing swift-hash from proxy relation'
     else:
-        status_set('active', 'Unit is ready')
+        return 'active', 'Unit is ready'
