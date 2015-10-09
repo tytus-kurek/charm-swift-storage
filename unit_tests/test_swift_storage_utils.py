@@ -27,7 +27,6 @@ TO_PATCH = [
     'service_restart',
     '_save_script_rc',
     'lsb_release',
-    'status_set',
 ]
 
 
@@ -336,14 +335,3 @@ class SwiftStorageUtilsTests(CharmTestCase):
                     swift_utils.OBJECT_SVCS)
         for service in services:
             self.assertIn(call(service), self.service_restart.call_args_list)
-
-    @patch.object(swift_utils, 'relation_ids')
-    def test_assess_status(self, relation_ids):
-        relation_ids.return_value = []
-        swift_utils.assess_status()
-        self.status_set.assert_called_with('blocked',
-                                           'Missing relation: proxy')
-
-        relation_ids.return_value = ['swift-storage:1']
-        swift_utils.assess_status()
-        self.status_set.assert_called_with('active', 'Unit is ready')
