@@ -7,7 +7,6 @@ from lib.swift_storage_utils import (
     PACKAGES,
     RESTART_MAP,
     SWIFT_SVCS,
-    assess_status,
     determine_block_devices,
     do_openstack_upgrade,
     ensure_swift_directories,
@@ -167,8 +166,7 @@ def main():
         hooks.execute(sys.argv)
     except UnregisteredHookError as e:
         log('Unknown hook {} - skipping.'.format(e))
-    set_os_workload_status(CONFIGS, REQUIRED_INTERFACES,
-                           charm_func=assess_status)
+    set_os_workload_status(CONFIGS, REQUIRED_INTERFACES)
 
 
 if __name__ == '__main__':

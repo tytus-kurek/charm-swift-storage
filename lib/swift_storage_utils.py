@@ -344,15 +344,3 @@ socket options = SO_KEEPALIVE
     f = open('/etc/rsyncd.conf', 'w')
     f.write(rsyncd_base)
     f.close()
-
-
-def assess_status(configs):
-    """Assess status of current unit"""
-    # Verify swift-hash received from swift-proxy
-    ctxt = SwiftStorageContext()()
-    if len(relation_ids('swift-storage')) < 1:
-        return '', ''
-    elif not ctxt or not ctxt['swift_hash']:
-        return 'blocked', 'Missing swift-hash from proxy relation'
-    else:
-        return 'active', 'Unit is ready'
