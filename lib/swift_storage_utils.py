@@ -38,7 +38,6 @@ from charmhelpers.core.hookenv import (
     INFO,
     ERROR,
     unit_private_ip,
-    relation_ids,
 )
 
 from charmhelpers.contrib.storage.linux.utils import (
