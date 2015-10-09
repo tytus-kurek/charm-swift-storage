@@ -505,7 +505,7 @@ class SwiftStorageBasicDeployment(OpenStackAmuletDeployment):
     def test_920_no_restart_on_config_change_when_paused(self):
         """Verify that the specified services are not restarted when the config
            is changed and the unit is paused."""
-        if self._get_openstack_release() <= self.precise_icehouse:
+        if self._get_openstack_release() <= self.trusty_icehouse:
             return
 
         u.log.info('Checking that system services do not get restarted  '
