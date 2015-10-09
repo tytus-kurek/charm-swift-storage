@@ -43,6 +43,7 @@ TO_PATCH = [
     'get_ipv6_addr',
     'assess_status',
     'status_set',
+    'set_os_workload_status',
 ]
 
 
