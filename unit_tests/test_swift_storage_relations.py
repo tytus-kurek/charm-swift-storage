@@ -58,11 +58,11 @@ class SwiftStorageRelationsTests(CharmTestCase):
         self.configure_installation_source.assert_called_with(
             'cloud:precise-havana',
         )
-        self.apt_update.assert_called()
+        self.assertTrue(self.apt_update.called)
         self.apt_install.assert_called_with(PACKAGES, fatal=True)
 
-        self.setup_storage.assert_called()
-        self.execd_preinstall.assert_called()
+        self.assertTrue(self.setup_storage.called)
+        self.assertTrue(self.execd_preinstall.called)
 
     def test_config_changed_no_upgrade_available(self):
         self.openstack_upgrade_available.return_value = False
@@ -169,12 +169,6 @@ class SwiftStorageRelationsTests(CharmTestCase):
         )
 
     @patch('sys.argv')
-    @patch.object(hooks, 'install')
-    def test_main_hook_exists(self, _install, _argv):
-        hooks.main()
-        _install.assert_called()
-
-    @patch('sys.argv')
     def test_main_hook_missing(self, _argv):
         hooks.main()
-        self.log.assert_called()
+        self.assertTrue(self.log.called)
