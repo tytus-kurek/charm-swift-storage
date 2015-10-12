@@ -24,6 +24,7 @@ from charmhelpers.core.hookenv import (
     INFO,
     ERROR,
     status_get,
+    status_set,
 )
 
 DEFAULT_LOOPBACK_SIZE = '5G'
