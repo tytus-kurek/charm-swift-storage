@@ -223,7 +223,8 @@ class SwiftStorageUtilsTests(CharmTestCase):
         clean.assert_called_with('/dev/vdb')
         self.mkdir.assert_called_with('/srv/node/vdb', owner='swift',
                                       group='swift')
-        self.mount.assert_called('/dev/vdb', '/srv/node/vdb', persist=True)
+        self.mount.assert_called_with('/dev/vdb', '/srv/node/vdb',
+                                      filesystem='xfs', persist=True)
         calls = [call(['chown', '-R', 'swift:swift', '/srv/node/']),
                  call(['chmod', '-R', '0755', '/srv/node/'])]
         self.check_call.assert_has_calls(calls)
