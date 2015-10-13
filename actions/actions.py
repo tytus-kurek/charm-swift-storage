@@ -6,10 +6,20 @@ import sys
 import yaml
 
 from charmhelpers.core.host import service_pause, service_resume
-from charmhelpers.core.hookenv import action_fail, status_set
-from charmhelpers.contrib.openstack.utils import get_os_codename_package
-
-from lib.swift_storage_utils import SWIFT_SVCS
+from charmhelpers.core.hookenv import action_fail
+from charmhelpers.core.unitdata import HookData, kv
+from charmhelpers.contrib.openstack.utils import (
+    get_os_codename_package,
+    set_os_workload_status,
+)
+from lib.swift_storage_utils import (
+    assess_status,
+    REQUIRED_INTERFACES,
+    SWIFT_SVCS,
+)
+from hooks.swift_storage_hooks import (
+    CONFIGS,
+)
 
 
 def _get_services():
@@ -41,8 +51,10 @@ def pause(args):
         stopped = service_pause(service)
         if not stopped:
             raise Exception("{} didn't stop cleanly.".format(service))
-    status_set(
-        "maintenance", "Paused. Use 'resume' action to resume normal service.")
+    with HookData()():
+        kv().set('unit-paused', True)
+    set_os_workload_status(CONFIGS, REQUIRED_INTERFACES,
+                           charm_func=assess_status)
 
 
 def resume(args):
@@ -54,7 +66,10 @@ def resume(args):
         started = service_resume(service)
         if not started:
             raise Exception("{} didn't start cleanly.".format(service))
-    status_set("active", "")
+    with HookData()():
+        kv().set('unit-paused', False)
+    set_os_workload_status(CONFIGS, REQUIRED_INTERFACES,
+                           charm_func=assess_status)
 
 
 # A dictionary of all the defined actions to callables (which take

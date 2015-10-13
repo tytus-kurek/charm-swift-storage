@@ -68,6 +68,10 @@ PACKAGES = [
 
 TEMPLATES = 'templates/'
 
+REQUIRED_INTERFACES = {
+    'proxy': ['swift-storage'],
+}
+
 ACCOUNT_SVCS = [
     'swift-account', 'swift-account-auditor',
     'swift-account-reaper', 'swift-account-replicator'
@@ -339,3 +343,12 @@ socket options = SO_KEEPALIVE
     f = open('/etc/rsyncd.conf', 'w')
     f.write(rsyncd_base)
     f.close()
+
+
+def assess_status(configs):
+    """Assess status of current unit"""
+    if is_paused():
+        return ("maintenance",
+                "Paused. Use 'resume' action to resume normal service.")
+    else:
+        return ("active", "Unit is ready")
