@@ -12,13 +12,13 @@ from charmhelpers.contrib.openstack.utils import (
     get_os_codename_package,
     set_os_workload_status,
 )
-from hooks.swift_storage_hooks import (
-    CONFIGS,
-)
 from lib.swift_storage_utils import (
     assess_status,
     REQUIRED_INTERFACES,
     SWIFT_SVCS,
+)
+from hooks.swift_storage_hooks import (
+    CONFIGS,
 )
 
 
