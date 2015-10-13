@@ -8,7 +8,7 @@ import yaml
 from test_utils import CharmTestCase
 
 from mock import patch
-with patch('hooks.lib.misc_utils.is_paused') as is_paused:
+with patch('actions.hooks.lib.misc_utils.is_paused') as is_paused:
     import actions.actions
 
 
