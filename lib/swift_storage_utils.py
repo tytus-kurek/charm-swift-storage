@@ -346,6 +346,7 @@ socket options = SO_KEEPALIVE
 
 
 def assess_status(configs):
+    """Assess status of current unit"""
     if is_paused():
         return ("maintenance",
                 "Paused. Use 'resume' action to resume normal service.")
