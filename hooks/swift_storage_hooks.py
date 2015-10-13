@@ -16,6 +16,8 @@ from lib.swift_storage_utils import (
     setup_storage,
     assert_charm_supports_ipv6,
     setup_rsync,
+    REQUIRED_INTERFACES,
+    assess_status,
 )
 
 from lib.misc_utils import pause_aware_restart_on_change
@@ -27,6 +29,7 @@ from charmhelpers.core.hookenv import (
     relation_get,
     relation_set,
     relations_of_type,
+    status_set,
 )
 
 from charmhelpers.fetch import (
@@ -40,6 +43,7 @@ from charmhelpers.payload.execd import execd_preinstall
 from charmhelpers.contrib.openstack.utils import (
     configure_installation_source,
     openstack_upgrade_available,
+    set_os_workload_status,
 )
 from charmhelpers.contrib.network.ip import (
     get_ipv6_addr
@@ -56,10 +60,13 @@ SUDOERS_D = '/etc/sudoers.d'
 
 @hooks.hook('install.real')
 def install():
+    status_set('maintenance', 'Executing pre-install')
     execd_preinstall()
     configure_installation_source(config('openstack-origin'))
+    status_set('maintenance', 'Installing apt packages')
     apt_update()
     apt_install(PACKAGES, fatal=True)
+    status_set('maintenance', 'Setting up storage')
     setup_storage()
     ensure_swift_directories()
 
@@ -68,6 +75,7 @@ def install():
 @pause_aware_restart_on_change(RESTART_MAP)
 def config_changed():
     if config('prefer-ipv6'):
+        status_set('maintenance', 'Configuring ipv6')
         assert_charm_supports_ipv6()
 
     ensure_swift_directories()
@@ -75,6 +83,7 @@ def config_changed():
 
     if not config('action-managed-upgrade') and \
             openstack_upgrade_available('swift'):
+        status_set('maintenance', 'Running openstack upgrade')
         do_openstack_upgrade(configs=CONFIGS)
     CONFIGS.write_all()
 
@@ -158,6 +167,8 @@ def main():
         hooks.execute(sys.argv)
     except UnregisteredHookError as e:
         log('Unknown hook {} - skipping.'.format(e))
+    set_os_workload_status(CONFIGS, REQUIRED_INTERFACES,
+                           charm_func=assess_status)
 
 
 if __name__ == '__main__':

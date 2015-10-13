@@ -23,7 +23,11 @@ from charmhelpers.core.hookenv import (
     log,
     INFO,
     ERROR,
-    status_get,
+)
+
+from charmhelpers.core.unitdata import (
+    HookData,
+    kv,
 )
 
 DEFAULT_LOOPBACK_SIZE = '5G'
@@ -87,10 +91,13 @@ def clean_storage(block_device):
         zap_disk(block_device)
 
 
-def is_paused(status_get=status_get):
+def is_paused():
     """Is the unit paused?"""
-    status, message = status_get()
-    return status == "maintenance" and message.startswith("Paused")
+    with HookData()():
+        if kv().get('unit-paused'):
+            return True
+        else:
+            return False
 
 
 def pause_aware_restart_on_change(restart_map):

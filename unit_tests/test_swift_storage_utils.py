@@ -27,6 +27,7 @@ TO_PATCH = [
     'service_restart',
     '_save_script_rc',
     'lsb_release',
+    'is_paused',
 ]
 
 
@@ -317,6 +318,7 @@ class SwiftStorageUtilsTests(CharmTestCase):
         self.assertEquals(ex, configs.register.call_args_list)
 
     def test_do_upgrade(self):
+        self.is_paused.return_value = False
         self.test_config.set('openstack-origin', 'cloud:precise-grizzly')
         self.get_os_codename_install_source.return_value = 'grizzly'
         swift_utils.do_openstack_upgrade(MagicMock())
