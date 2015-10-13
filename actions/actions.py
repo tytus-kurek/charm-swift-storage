@@ -6,7 +6,7 @@ import sys
 import yaml
 
 from charmhelpers.core.host import service_pause, service_resume
-from charmhelpers.core.hookenv import action_fail, status_set
+from charmhelpers.core.hookenv import action_fail
 from charmhelpers.contrib.openstack.utils import get_os_codename_package
 
 from lib.swift_storage_utils import SWIFT_SVCS
