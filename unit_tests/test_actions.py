@@ -7,14 +7,17 @@ import yaml
 
 from test_utils import CharmTestCase
 
-import actions.actions
+from mock import patch
+with patch('hooks.lib.misc_utils.is_paused') as is_paused:
+    import actions.actions
 
 
 class PauseTestCase(CharmTestCase):
 
     def setUp(self):
         super(PauseTestCase, self).setUp(
-            actions.actions, ["service_pause", "HookData", "kv"])
+            actions.actions, ["service_pause", "HookData", "kv",
+                              "set_os_workload_status"])
 
         class FakeArgs(object):
             services = ['swift-account',
@@ -89,7 +92,8 @@ class ResumeTestCase(CharmTestCase):
 
     def setUp(self):
         super(ResumeTestCase, self).setUp(
-            actions.actions, ["service_resume", "HookData", "kv"])
+            actions.actions, ["service_resume", "HookData", "kv",
+                              "set_os_workload_status"])
 
         class FakeArgs(object):
             services = ['swift-account',
