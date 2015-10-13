@@ -30,6 +30,7 @@ from charmhelpers.core.hookenv import (
     relation_set,
     relations_of_type,
     status_set,
+    relation_ids,
 )
 
 from charmhelpers.fetch import (
@@ -91,6 +92,11 @@ def config_changed():
     if relations_of_type('nrpe-external-master'):
         update_nrpe_config()
 
+    # Update swift-storage relations in case block-device changed
+    for rid in relation_ids('swift-storage'):
+        relation_set(relation_id=rid,
+                     relation_settings=get_swift_storage_relation_settings())
+
 
 @hooks.hook('upgrade-charm')
 def upgrade_charm():
@@ -100,6 +106,11 @@ def upgrade_charm():
 
 @hooks.hook()
 def swift_storage_relation_joined():
+    relation_set(relation_settings=get_swift_storage_relation_settings())
+
+
+def get_swift_storage_relation_settings():
+    ''' Return storage relation settings as a dictionary '''
     devs = [os.path.basename(dev) for dev in determine_block_devices()]
     rel_settings = {
         'zone': config('zone'),
@@ -112,7 +123,7 @@ def swift_storage_relation_joined():
     if config('prefer-ipv6'):
         rel_settings['private-address'] = get_ipv6_addr()[0]
 
-    relation_set(**rel_settings)
+    return rel_settings
 
 
 @hooks.hook('swift-storage-relation-changed')
