@@ -23,7 +23,6 @@ from charmhelpers.core.hookenv import (
     log,
     INFO,
     ERROR,
-    status_get,
 )
 
 from charmhelpers.core.unitdata import (
@@ -92,7 +91,7 @@ def clean_storage(block_device):
         zap_disk(block_device)
 
 
-def is_paused(status_get=status_get):
+def is_paused():
     """Is the unit paused?"""
     with HookData()():
         if kv().get('unit-paused'):
