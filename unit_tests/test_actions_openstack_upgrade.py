@@ -4,8 +4,9 @@ import os
 os.environ['JUJU_UNIT_NAME'] = 'swift-storge'
 
 with patch('charmhelpers.core.hookenv.config') as config:
-    config.return_value = 'swift-storage'
-    import actions.openstack_upgrade as openstack_upgrade
+    with patch('lib.misc_utils.is_paused') as is_paused:
+        config.return_value = 'swift-storage'
+        import actions.openstack_upgrade as openstack_upgrade
 
 from test_utils import (
     CharmTestCase

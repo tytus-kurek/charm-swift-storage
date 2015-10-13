@@ -7,6 +7,7 @@ import yaml
 
 from charmhelpers.core.host import service_pause, service_resume
 from charmhelpers.core.hookenv import action_fail
+from charmhelpers.core.unitdata import HookData, kv
 from charmhelpers.contrib.openstack.utils import get_os_codename_package
 
 from lib.swift_storage_utils import SWIFT_SVCS
@@ -41,6 +42,8 @@ def pause(args):
         stopped = service_pause(service)
         if not stopped:
             raise Exception("{} didn't stop cleanly.".format(service))
+    with HookData()():
+        kv().set('unit-paused', True)
 
 
 def resume(args):
@@ -52,6 +55,8 @@ def resume(args):
         started = service_resume(service)
         if not started:
             raise Exception("{} didn't start cleanly.".format(service))
+    with HookData()():
+        kv().set('unit-paused', False)
 
 
 # A dictionary of all the defined actions to callables (which take

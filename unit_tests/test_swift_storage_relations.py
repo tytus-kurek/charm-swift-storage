@@ -7,7 +7,8 @@ import lib.swift_storage_utils as utils
 _reg = utils.register_configs
 utils.register_configs = MagicMock()
 
-import hooks.swift_storage_hooks as hooks
+with patch('hooks.lib.misc_utils.is_paused') as is_paused:
+    import hooks.swift_storage_hooks as hooks
 
 utils.register_configs = _reg
 

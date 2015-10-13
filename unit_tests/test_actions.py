@@ -14,7 +14,7 @@ class PauseTestCase(CharmTestCase):
 
     def setUp(self):
         super(PauseTestCase, self).setUp(
-            actions.actions, ["service_pause", "status_set"])
+            actions.actions, ["service_pause", "HookData", "kv"])
 
         class FakeArgs(object):
             services = ['swift-account',
@@ -77,32 +77,19 @@ class PauseTestCase(CharmTestCase):
                                        'swift-account-reaper',
                                        'swift-account-replicator'])
 
-    def test_status_mode(self):
-        """Pause action sets the status to maintenance."""
-        status_calls = []
-        self.status_set.side_effect = lambda state, msg: status_calls.append(
-            state)
+    def test_pause_sets_value(self):
+        """Pause action sets the unit-paused value to True."""
+        self.HookData()().return_value = True
 
         actions.actions.pause(self.args)
-        self.assertEqual(status_calls, ["maintenance"])
-
-    def test_status_message(self):
-        """Pause action sets a status message reflecting that it's paused."""
-        status_calls = []
-        self.status_set.side_effect = lambda state, msg: status_calls.append(
-            msg)
-
-        actions.actions.pause(self.args)
-        self.assertEqual(
-            status_calls, ["Paused. "
-                           "Use 'resume' action to resume normal service."])
+        self.kv().set.assert_called_with('unit-paused', True)
 
 
 class ResumeTestCase(CharmTestCase):
 
     def setUp(self):
         super(ResumeTestCase, self).setUp(
-            actions.actions, ["service_resume", "status_set"])
+            actions.actions, ["service_resume", "HookData", "kv"])
 
         class FakeArgs(object):
             services = ['swift-account',
@@ -164,23 +151,12 @@ class ResumeTestCase(CharmTestCase):
                                         'swift-account-reaper',
                                         'swift-account-replicator'])
 
-    def test_status_mode(self):
-        """Resume action sets the status to maintenance."""
-        status_calls = []
-        self.status_set.side_effect = lambda state, msg: status_calls.append(
-            state)
+    def test_resume_sets_value(self):
+        """Resume action sets the unit-paused value to False."""
+        self.HookData()().return_value = True
 
         actions.actions.resume(self.args)
-        self.assertEqual(status_calls, ["active"])
-
-    def test_status_message(self):
-        """Resume action sets an empty status message."""
-        status_calls = []
-        self.status_set.side_effect = lambda state, msg: status_calls.append(
-            msg)
-
-        actions.actions.resume(self.args)
-        self.assertEqual(status_calls, [""])
+        self.kv().set.assert_called_with('unit-paused', False)
 
 
 class GetActionParserTestCase(unittest.TestCase):
