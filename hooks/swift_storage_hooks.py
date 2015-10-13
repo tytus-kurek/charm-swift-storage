@@ -17,7 +17,6 @@ from lib.swift_storage_utils import (
     assert_charm_supports_ipv6,
     setup_rsync,
     REQUIRED_INTERFACES,
-    is_paused,
 )
 
 from lib.misc_utils import pause_aware_restart_on_change
@@ -167,9 +166,7 @@ def main():
         hooks.execute(sys.argv)
     except UnregisteredHookError as e:
         log('Unknown hook {} - skipping.'.format(e))
-    # Don't overwrite paused status
-    if not is_paused():
-        set_os_workload_status(CONFIGS, REQUIRED_INTERFACES)
+    set_os_workload_status(CONFIGS, REQUIRED_INTERFACES)
 
 
 if __name__ == '__main__':
