@@ -67,9 +67,7 @@ class SwiftStorageRelationsTests(CharmTestCase):
         self.assertTrue(self.setup_storage.called)
         self.assertTrue(self.execd_preinstall.called)
 
-    @patch.object(hooks, 'relation_ids')
-    def test_config_changed_no_upgrade_available(self,
-                                                 mock_relation_ids):
+    def test_config_changed_no_upgrade_available(self):
         self.openstack_upgrade_available.return_value = False
         self.relations_of_type.return_value = False
         with patch_open() as (_open, _file):
@@ -79,9 +77,7 @@ class SwiftStorageRelationsTests(CharmTestCase):
         self.assertTrue(self.CONFIGS.write_all.called)
         self.assertTrue(self.setup_rsync.called)
 
-    @patch.object(hooks, 'relation_ids')
-    def test_config_changed_upgrade_available(self,
-                                              mock_relation_ids):
+    def test_config_changed_upgrade_available(self):
         self.openstack_upgrade_available.return_value = True
         self.relations_of_type.return_value = False
         with patch_open() as (_open, _file):
@@ -90,9 +86,7 @@ class SwiftStorageRelationsTests(CharmTestCase):
         self.assertTrue(self.do_openstack_upgrade.called)
         self.assertTrue(self.CONFIGS.write_all.called)
 
-    @patch.object(hooks, 'relation_ids')
-    def test_config_changed_with_openstack_upgrade_action(self,
-                                                          mock_relation_ids):
+    def test_config_changed_with_openstack_upgrade_action(self):
         self.openstack_upgrade_available.return_value = True
         self.test_config.set('action-managed-upgrade', True)
 
@@ -102,9 +96,7 @@ class SwiftStorageRelationsTests(CharmTestCase):
 
         self.assertFalse(self.do_openstack_upgrade.called)
 
-    @patch.object(hooks, 'relation_ids')
-    def test_config_changed_nrpe_master(self,
-                                        mock_relation_ids):
+    def test_config_changed_nrpe_master(self):
         self.openstack_upgrade_available.return_value = False
         self.relations_of_type.return_value = True
         with patch_open() as (_open, _file):
@@ -114,10 +106,8 @@ class SwiftStorageRelationsTests(CharmTestCase):
         self.assertTrue(self.setup_rsync.called)
         self.assertTrue(self.update_nrpe_config.called)
 
-    @patch.object(hooks, 'relation_ids')
     @patch.object(hooks, 'assert_charm_supports_ipv6')
-    def test_config_changed_ipv6(self, mock_assert_charm_supports_ipv6,
-                                 mock_relation_ids):
+    def test_config_changed_ipv6(self, mock_assert_charm_supports_ipv6):
         self.test_config.set('prefer-ipv6', True)
         self.openstack_upgrade_available.return_value = False
         self.relations_of_type.return_value = False
@@ -126,21 +116,6 @@ class SwiftStorageRelationsTests(CharmTestCase):
             hooks.config_changed()
         self.assertTrue(self.CONFIGS.write_all.called)
         self.assertTrue(self.setup_rsync.called)
-
-    @patch.object(hooks, 'relation_ids')
-    def test_config_changed_update_storage_relation(self,
-                                                    mock_relation_ids):
-        mock_relation_ids.return_value = ['swift-storage:27']
-        self.openstack_upgrade_available.return_value = False
-        self.determine_block_devices.return_value = ['/dev/vdb']
-        with patch_open() as (_open, _file):
-            _file.read.return_value = "foo"
-            hooks.config_changed()
-        self.relation_set.assert_called_with(
-            relation_id='swift-storage:27',
-            relation_settings={'device': 'vdb', 'object_port': 6000,
-                               'account_port': 6002, 'zone': 1,
-                               'container_port': 6001})
 
     def test_upgrade_charm(self):
         self.filter_installed_packages.return_value = [
@@ -155,9 +130,8 @@ class SwiftStorageRelationsTests(CharmTestCase):
             '/dev/vdb']
         hooks.swift_storage_relation_joined()
         self.relation_set.assert_called_with(
-            relation_settings={'device': 'vdb', 'object_port': 6000,
-                               'account_port': 6002, 'zone': 1,
-                               'container_port': 6001}
+            device='vdb', object_port=6000, account_port=6002,
+            zone=1, container_port=6001
         )
 
     def test_storage_joined_ipv6(self):
@@ -170,16 +144,15 @@ class SwiftStorageRelationsTests(CharmTestCase):
             'account_port': 6002, 'zone': 1, 'container_port': 6001,
             'private-address': '2001:db8:1::1',
         }
-        self.relation_set.assert_called_with(relation_settings=args)
+        self.relation_set.assert_called_with(**args)
 
     def test_storage_joined_multi_device(self):
         self.determine_block_devices.return_value = ['/dev/vdb', '/dev/vdc',
                                                      '/dev/vdd']
         hooks.swift_storage_relation_joined()
         self.relation_set.assert_called_with(
-            relation_settings={'device': 'vdb:vdc:vdd', 'object_port': 6000,
-                               'account_port': 6002, 'zone': 1,
-                               'container_port': 6001}
+            device='vdb:vdc:vdd', object_port=6000, account_port=6002,
+            zone=1, container_port=6001
         )
 
     @patch('sys.exit')
