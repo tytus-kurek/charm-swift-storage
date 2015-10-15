@@ -79,6 +79,7 @@ def config_changed():
         status_set('maintenance', 'Configuring ipv6')
         assert_charm_supports_ipv6()
 
+    setup_storage()
     ensure_swift_directories()
     setup_rsync()
 
