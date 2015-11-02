@@ -27,6 +27,7 @@ from charmhelpers.fetch import (
 from charmhelpers.core.host import (
     mkdir,
     mount,
+    fstab_add,
     service_restart,
     lsb_release
 )
@@ -259,13 +260,17 @@ def setup_storage():
         mkdir(_mp, owner='swift', group='swift')
 
         options = None
-        loopback = is_mapped_loopback_device(dev)
-        if loopback:
-            dev = loopback
+        loopback_device = is_mapped_loopback_device(dev)
+
+        if loopback_device:
+            dev = loopback_device
             options = "loop, defaults"
 
-        mount(dev, '/srv/node/%s' % _dev, persist=True,
-              filesystem="xfs", options=options)
+        mountpoint = '/srv/node/%s' % _dev
+        filesystem = "xfs"
+
+        mount(dev, mountpoint, filesystem=filesystem)
+        fstab_add(dev, mountpoint, filesystem, options=options)
 
     check_call(['chown', '-R', 'swift:swift', '/srv/node/'])
     check_call(['chmod', '-R', '0755', '/srv/node/'])
