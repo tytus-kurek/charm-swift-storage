@@ -262,7 +262,7 @@ def setup_storage():
         loopback = is_mapped_loopback_device(dev)
         if loopback:
             dev = loopback
-            options = "loop"
+            options = "loop, defaults"
 
         mount(dev, '/srv/node/%s' % _dev, persist=True,
               filesystem="xfs", options=options)
