@@ -45,6 +45,10 @@ from charmhelpers.contrib.storage.linux.utils import (
     is_device_mounted,
 )
 
+from charmhelpers.contrib.storage.linux.loopback import (
+    is_mapped_loopback_device,
+)
+
 from charmhelpers.contrib.openstack.utils import (
     configure_installation_source,
     get_os_codename_install_source,
@@ -253,8 +257,16 @@ def setup_storage():
         _dev = os.path.basename(dev)
         _mp = os.path.join('/srv', 'node', _dev)
         mkdir(_mp, owner='swift', group='swift')
+
+        options = None
+        loopback = is_mapped_loopback_device(dev)
+        if loopback:
+            dev = loopback
+            options = "loop"
+
         mount(dev, '/srv/node/%s' % _dev, persist=True,
-              filesystem="xfs")
+              filesystem="xfs", options=options)
+
     check_call(['chown', '-R', 'swift:swift', '/srv/node/'])
     check_call(['chmod', '-R', '0755', '/srv/node/'])
 
