@@ -9,7 +9,8 @@ from test_utils import CharmTestCase
 
 from mock import patch
 with patch('actions.hooks.lib.misc_utils.is_paused') as is_paused:
-    import actions.actions
+    with patch('actions.hooks.lib.swift_storage_utils.register_configs') as _:
+        import actions.actions
 
 
 class PauseTestCase(CharmTestCase):

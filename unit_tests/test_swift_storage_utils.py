@@ -249,7 +249,7 @@ class SwiftStorageUtilsTests(CharmTestCase):
 
     def test_find_block_devices_real_world(self):
         self.is_block_device.return_value = True
-        side_effect = lambda x: x in ["/dev/sdb", "/dev/sdb1"]
+        side_effect = lambda x: x in ["/dev/sdb", "/dev/sdb1"] # flake8: noqa
         self.is_device_mounted.side_effect = side_effect
         with patch_open() as (_open, _file):
             _file.read.return_value = REAL_WORLD_PARTITIONS
