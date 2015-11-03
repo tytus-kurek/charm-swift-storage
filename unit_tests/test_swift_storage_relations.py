@@ -1,16 +1,10 @@
-from mock import patch, MagicMock
+from mock import patch
 
 from test_utils import CharmTestCase, patch_open
 
-import lib.swift_storage_utils as utils
-
-_reg = utils.register_configs
-utils.register_configs = MagicMock()
-
 with patch('hooks.lib.misc_utils.is_paused') as is_paused:
-    import hooks.swift_storage_hooks as hooks
-
-utils.register_configs = _reg
+    with patch('hooks.lib.swift_storage_utils.register_configs') as _:
+        import hooks.swift_storage_hooks as hooks
 
 from lib.swift_storage_utils import PACKAGES
 
