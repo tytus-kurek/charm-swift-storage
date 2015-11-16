@@ -28,6 +28,9 @@ TO_PATCH = [
     '_save_script_rc',
     'lsb_release',
     'is_paused',
+    'fstab_add',
+    'mount',
+    'is_mapped_loopback_device',
 ]
 
 
@@ -218,6 +221,7 @@ class SwiftStorageUtilsTests(CharmTestCase):
     @patch.object(swift_utils, 'mkfs_xfs')
     @patch.object(swift_utils, 'determine_block_devices')
     def test_setup_storage_overwrite(self, determine, mkfs, clean):
+        self.is_mapped_loopback_device.return_value = None
         determine.return_value = ['/dev/vdb']
         self.test_config.set('overwrite', 'True')
         swift_utils.setup_storage()
@@ -225,7 +229,10 @@ class SwiftStorageUtilsTests(CharmTestCase):
         self.mkdir.assert_called_with('/srv/node/vdb', owner='swift',
                                       group='swift')
         self.mount.assert_called_with('/dev/vdb', '/srv/node/vdb',
-                                      filesystem='xfs', persist=True)
+                                      filesystem='xfs')
+        self.fstab_add.assert_called_with('/dev/vdb', '/srv/node/vdb',
+                                          'xfs',
+                                          options=None)
         calls = [call(['chown', '-R', 'swift:swift', '/srv/node/']),
                  call(['chmod', '-R', '0755', '/srv/node/'])]
         self.check_call.assert_has_calls(calls)
@@ -338,3 +345,21 @@ class SwiftStorageUtilsTests(CharmTestCase):
                     swift_utils.OBJECT_SVCS)
         for service in services:
             self.assertIn(call(service), self.service_restart.call_args_list)
+
+    @patch.object(swift_utils, "mkfs_xfs")
+    @patch.object(swift_utils, "determine_block_devices")
+    def test_setup_storage_img(self, determine, mkfs):
+        determine.return_value = ["/srv/test.img", ]
+        self.is_mapped_loopback_device.return_value = "/srv/test.img"
+        swift_utils.setup_storage()
+        self.mount.assert_called_with(
+            "/srv/test.img",
+            "/srv/node/test.img",
+            filesystem="xfs",
+        )
+        self.fstab_add.assert_called_with(
+            '/srv/test.img',
+            '/srv/node/test.img',
+            'xfs',
+            options='loop, defaults'
+        )
