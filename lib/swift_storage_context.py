@@ -54,15 +54,26 @@ class RsyncContext(OSContextGenerator):
                 out.write(_m.sub('RSYNC_ENABLE=true', default))
 
     def __call__(self):
+        ctxt = {}
         if config('prefer-ipv6'):
-            local_ip = '%s' % get_ipv6_addr()[0]
+            ctxt['local_ip'] = '%s' % get_ipv6_addr()[0]
         else:
-            local_ip = unit_private_ip()
+            ctxt['local_ip'] = unit_private_ip()
+
+        timestamps = []
+        for rid in relation_ids('swift-storage'):
+            for unit in related_units(rid):
+                settings = relation_get(unit=unit, rid=rid)
+                ts = settings.get('timestamp')
+                allowed_hosts = settings.get('rsync_allowed_hosts')
+                if allowed_hosts and ts:
+                    if not timestamps or ts > max(timestamps):
+                        ctxt['allowed_hosts'] = allowed_hosts
+
+                    timestamps.append(ts)
 
         self.enable_rsyncd()
-        return {
-            'local_ip': local_ip
-        }
+        return ctxt
 
 
 class SwiftStorageServerContext(OSContextGenerator):
