@@ -123,7 +123,10 @@ def swift_storage_relation_changed():
     if '' in [rings_url, swift_hash] or None in [rings_url, swift_hash]:
         log('swift_storage_relation_changed: Peer not ready?')
         sys.exit(0)
+
+    CONFIGS.write('/etc/rsync-juju.d/050-swift-storage.conf')
     CONFIGS.write('/etc/swift/swift.conf')
+
     fetch_swift_rings(rings_url)
 
 
