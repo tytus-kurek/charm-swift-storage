@@ -292,6 +292,7 @@ class SwiftStorageUtilsTests(CharmTestCase):
         renderer.assert_called_with(templates_dir=swift_utils.TEMPLATES,
                                     openstack_release='essex')
 
+    @patch('charmhelpers.contrib.openstack.context.WorkerConfigContext')
     @patch('charmhelpers.contrib.openstack.context.BindHostContext')
     @patch.object(swift_utils, 'SwiftStorageContext')
     @patch.object(swift_utils, 'RsyncContext')
@@ -299,11 +300,12 @@ class SwiftStorageUtilsTests(CharmTestCase):
     @patch('charmhelpers.contrib.openstack.templating.OSConfigRenderer')
     def test_register_configs_post_install(self, renderer,
                                            swift, rsync, server,
-                                           bind_context):
+                                           bind_context, worker_context):
         swift.return_value = 'swift_context'
         rsync.return_value = 'rsync_context'
         server.return_value = 'swift_server_context'
         bind_context.return_value = 'bind_host_context'
+        worker_context.return_value = 'worker_context'
         self.get_os_codename_package.return_value = 'grizzly'
         configs = MagicMock()
         configs.register = MagicMock()
@@ -316,11 +318,14 @@ class SwiftStorageUtilsTests(CharmTestCase):
             call('/etc/rsync-juju.d/050-swift-storage.conf',
                  ['rsync_context', 'swift_context']),
             call('/etc/swift/account-server.conf', ['swift_context',
-                                                    'bind_host_context']),
+                                                    'bind_host_context',
+                                                    'worker_context']),
             call('/etc/swift/object-server.conf', ['swift_context',
-                                                   'bind_host_context']),
+                                                   'bind_host_context',
+                                                   'worker_context']),
             call('/etc/swift/container-server.conf', ['swift_context',
-                                                      'bind_host_context'])
+                                                      'bind_host_context',
+                                                      'worker_context'])
         ]
         self.assertEquals(ex, configs.register.call_args_list)
 
