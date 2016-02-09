@@ -1,4 +1,4 @@
-from mock import MagicMock, patch
+from mock import MagicMock
 from test_utils import CharmTestCase, patch_open
 
 import lib.swift_storage_context as swift_context
