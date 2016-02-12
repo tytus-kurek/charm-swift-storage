@@ -67,18 +67,15 @@ class SwiftStorageContextTests(CharmTestCase):
             _file.write.assert_called_with('RSYNC_ENABLE=true\n')
 
     def test_swift_storage_server_context(self):
-        import psutil
         self.unit_private_ip.return_value = '10.0.0.5'
         self.test_config.set('account-server-port', '500')
         self.test_config.set('object-server-port', '501')
         self.test_config.set('container-server-port', '502')
         self.test_config.set('object-server-threads-per-disk', '3')
-        self.test_config.set('worker-multiplier', '3')
         self.test_config.set('object-replicator-concurrency', '3')
         self.test_config.set('account-max-connections', '10')
         self.test_config.set('container-max-connections', '10')
         self.test_config.set('object-max-connections', '10')
-        num_workers = psutil.NUM_CPUS * 3
         ctxt = swift_context.SwiftStorageServerContext()
         result = ctxt()
         ex = {
@@ -87,7 +84,6 @@ class SwiftStorageContextTests(CharmTestCase):
             'account_server_port': '500',
             'local_ip': '10.0.0.5',
             'object_server_threads_per_disk': '3',
-            'workers': str(num_workers),
             'object_replicator_concurrency': '3',
             'account_max_connections': '10',
             'container_max_connections': '10',

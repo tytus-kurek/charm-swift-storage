@@ -132,7 +132,8 @@ def register_configs():
     for server in ['account', 'object', 'container']:
         configs.register('/etc/swift/%s-server.conf' % server,
                          [SwiftStorageServerContext(),
-                          context.BindHostContext()]),
+                          context.BindHostContext(),
+                          context.WorkerConfigContext()]),
     return configs
 
 
