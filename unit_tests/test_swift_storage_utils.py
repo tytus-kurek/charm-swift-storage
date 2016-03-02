@@ -216,6 +216,11 @@ class SwiftStorageUtilsTests(CharmTestCase):
         calls = [call(['chown', '-R', 'swift:swift', '/srv/node/']),
                  call(['chmod', '-R', '0755', '/srv/node/'])]
         self.check_call.assert_has_calls(calls)
+        self.mkdir.assert_has_calls([
+            call('/srv/node', owner='swift', group='swift',
+                 perms=0o755),
+            call('/srv/node/vdb', group='swift', owner='swift')
+        ])
 
     @patch.object(swift_utils, 'clean_storage')
     @patch.object(swift_utils, 'mkfs_xfs')
@@ -226,8 +231,6 @@ class SwiftStorageUtilsTests(CharmTestCase):
         self.test_config.set('overwrite', 'True')
         swift_utils.setup_storage()
         clean.assert_called_with('/dev/vdb')
-        self.mkdir.assert_called_with('/srv/node/vdb', owner='swift',
-                                      group='swift')
         self.mount.assert_called_with('/dev/vdb', '/srv/node/vdb',
                                       filesystem='xfs')
         self.fstab_add.assert_called_with('/dev/vdb', '/srv/node/vdb',
@@ -236,6 +239,11 @@ class SwiftStorageUtilsTests(CharmTestCase):
         calls = [call(['chown', '-R', 'swift:swift', '/srv/node/']),
                  call(['chmod', '-R', '0755', '/srv/node/'])]
         self.check_call.assert_has_calls(calls)
+        self.mkdir.assert_has_calls([
+            call('/srv/node', owner='swift', group='swift',
+                 perms=0o755),
+            call('/srv/node/vdb', group='swift', owner='swift')
+        ])
 
     def _fake_is_device_mounted(self, device):
         if device in ["/dev/sda", "/dev/vda", "/dev/cciss/c0d0"]:
@@ -368,3 +376,9 @@ class SwiftStorageUtilsTests(CharmTestCase):
             'xfs',
             options='loop, defaults'
         )
+        self.mkdir.assert_has_calls([
+            call('/srv/node', owner='swift', group='swift',
+                 perms=0o755),
+            call('/srv/node/test.img', group='swift', owner='swift')
+        ])
+

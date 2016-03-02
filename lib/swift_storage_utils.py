@@ -251,6 +251,11 @@ def mkfs_xfs(bdev):
 
 
 def setup_storage():
+    # Ensure /srv/node exists just in case no disks
+    # are detected and used.
+    mkdir(os.path.join('/srv', 'node'),
+          owner='swift', group='swift',
+          perms=0o755)
     for dev in determine_block_devices():
         if config('overwrite') in ['True', 'true']:
             clean_storage(dev)
