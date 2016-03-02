@@ -1,4 +1,7 @@
 from mock import patch
+import os
+import json
+import uuid
 
 from test_utils import CharmTestCase, patch_open
 
@@ -15,6 +18,7 @@ TO_PATCH = [
     'config',
     'log',
     'relation_set',
+    'relation_ids',
     'relation_get',
     'relations_of_type',
     # charmhelpers.core.host
@@ -111,42 +115,170 @@ class SwiftStorageRelationsTests(CharmTestCase):
         self.assertTrue(self.CONFIGS.write_all.called)
         self.assertTrue(self.setup_rsync.called)
 
-    def test_upgrade_charm(self):
+    @patch.object(hooks, 'ensure_devs_tracked')
+    def test_upgrade_charm(self, mock_ensure_devs_tracked):
         self.filter_installed_packages.return_value = [
             'python-psutil']
         hooks.upgrade_charm()
         self.apt_install.assert_called_with([
             'python-psutil'], fatal=True)
         self.assertTrue(self.update_nrpe_config.called)
+        self.assertTrue(mock_ensure_devs_tracked.called)
 
-    def test_storage_joined_single_device(self):
-        self.determine_block_devices.return_value = [
-            '/dev/vdb']
+    @patch('hooks.lib.swift_storage_utils.get_device_blkid',
+           lambda dev: str(uuid.uuid4()))
+    @patch.object(hooks.os, 'environ')
+    @patch('hooks.lib.swift_storage_utils.os.path.isdir', lambda *args: True)
+    @patch.object(hooks, 'relation_set')
+    @patch('hooks.lib.swift_storage_utils.local_unit')
+    @patch('hooks.lib.swift_storage_utils.relation_ids', lambda *args: [])
+    @patch('hooks.lib.swift_storage_utils.KVStore')
+    @patch.object(uuid, 'uuid4', lambda: 'a-test-uuid')
+    def test_storage_joined_single_device(self, mock_kvstore, mock_local_unit,
+                                          mock_rel_set, mock_environ):
+        mock_environ.get.side_effect = {'JUJU_ENV_UUID': uuid.uuid4()}
+        mock_local_unit.return_value = 'test/0'
+        kvstore = mock_kvstore.return_value
+        kvstore.__enter__.return_value = kvstore
+        kvstore.get.return_value = None
+        self.determine_block_devices.return_value = ['/dev/vdb']
+
         hooks.swift_storage_relation_joined()
-        self.relation_set.assert_called_with(
+
+        mock_rel_set.assert_called_with(
+            relation_id=None,
             device='vdb', object_port=6000, account_port=6002,
             zone=1, container_port=6001
         )
 
-    def test_storage_joined_ipv6(self):
+        kvstore.get.return_value = None
+        rel_settings = {}
+
+        def fake_kv_set(key, value):
+            rel_settings[key] = value
+
+        kvstore.set.side_effect = fake_kv_set
+
+        def fake_kv_get(key):
+            return rel_settings.get(key)
+
+        kvstore.get.side_effect = fake_kv_get
+        devices = {"vdb@%s" % (mock_environ['JUJU_ENV_UUID']):
+                   {"status": "active",
+                    "blkid": 'a-test-uuid'}}
+        kvstore.set.assert_called_with(key='devices',
+                                       value=json.dumps(devices))
+
+    @patch('hooks.lib.swift_storage_utils.get_device_blkid',
+           lambda dev: '%s-blkid-uuid' % os.path.basename(dev))
+    @patch.object(hooks.os, 'environ')
+    @patch('hooks.lib.swift_storage_utils.os.path.isdir', lambda *args: True)
+    @patch.object(hooks, 'relation_set')
+    @patch('hooks.lib.swift_storage_utils.relation_ids', lambda *args: [])
+    @patch('hooks.lib.swift_storage_utils.KVStore')
+    @patch.object(uuid, 'uuid4', lambda: 'a-test-uuid')
+    def test_storage_joined_ipv6(self, mock_kvstore, mock_rel_set,
+                                 mock_environ):
+        kvstore = mock_kvstore.return_value
+        kvstore.__enter__.return_value = kvstore
+        kvstore.get.return_value = None
+
         self.determine_block_devices.return_value = ['/dev/vdb']
         self.test_config.set('prefer-ipv6', True)
         self.get_ipv6_addr.return_value = ['2001:db8:1::1']
+
         hooks.swift_storage_relation_joined()
         args = {
+            'relation_id': None,
             'device': 'vdb', 'object_port': 6000,
             'account_port': 6002, 'zone': 1, 'container_port': 6001,
             'private-address': '2001:db8:1::1',
         }
-        self.relation_set.assert_called_with(**args)
+        mock_rel_set.assert_called_with(**args)
+        kvstore.get.assert_called_with(key='devices')
 
-    def test_storage_joined_multi_device(self):
+    @patch('hooks.lib.swift_storage_utils.get_device_blkid',
+           lambda dev: '%s-blkid-uuid' % os.path.basename(dev))
+    @patch.object(hooks.os, 'environ')
+    @patch('hooks.lib.swift_storage_utils.os.path.isdir', lambda *args: True)
+    @patch('hooks.lib.swift_storage_utils.local_unit')
+    @patch('hooks.lib.swift_storage_utils.relation_ids', lambda *args: [])
+    @patch('hooks.lib.swift_storage_utils.KVStore')
+    @patch.object(uuid, 'uuid4', lambda: 'a-test-uuid')
+    def test_storage_joined_multi_device(self, mock_kvstore, mock_local_unit,
+                                         mock_environ):
+        mock_environ.get.side_effect = {'JUJU_ENV_UUID': uuid.uuid4()}
         self.determine_block_devices.return_value = ['/dev/vdb', '/dev/vdc',
                                                      '/dev/vdd']
+        mock_local_unit.return_value = 'test/0'
+        kvstore = mock_kvstore.return_value
+        kvstore.__enter__.return_value = kvstore
+        kvstore.get.return_value = None
+        rel_settings = {}
+
+        def fake_kv_set(key, value):
+            rel_settings[key] = value
+
+        kvstore.set.side_effect = fake_kv_set
+
+        def fake_kv_get(key):
+            return rel_settings.get(key)
+
+        kvstore.get.side_effect = fake_kv_get
+
         hooks.swift_storage_relation_joined()
-        self.relation_set.assert_called_with(
-            device='vdb:vdc:vdd', object_port=6000, account_port=6002,
-            zone=1, container_port=6001
+        env_uuid = mock_environ['JUJU_ENV_UUID']
+        devices = {"vdb@%s" % (env_uuid): {"status": "active",
+                                           "blkid": 'vdb-blkid-uuid'},
+                   "vdd@%s" % (env_uuid): {"status": "active",
+                                           "blkid": 'vdd-blkid-uuid'},
+                   "vdc@%s" % (env_uuid): {"status": "active",
+                                           "blkid": 'vdc-blkid-uuid'}}
+        kvstore.set.assert_called_with(
+            key='devices', value=json.dumps(devices)
+        )
+
+    @patch('hooks.lib.swift_storage_utils.get_device_blkid',
+           lambda dev: '%s-blkid-uuid' % os.path.basename(dev))
+    @patch.object(hooks.os, 'environ')
+    @patch('hooks.lib.swift_storage_utils.os.path.isdir', lambda *args: True)
+    @patch('hooks.lib.swift_storage_utils.local_unit')
+    @patch('hooks.lib.swift_storage_utils.relation_ids', lambda *args: [])
+    @patch('hooks.lib.swift_storage_utils.KVStore')
+    def test_storage_joined_dev_exists_unknown_juju_env_uuid(self,
+                                                             mock_kvstore,
+                                                             mock_local_unit,
+                                                             mock_environ):
+        mock_environ.get.return_value = {'JUJU_ENV_UUID': uuid.uuid4()}
+        self.determine_block_devices.return_value = ['/dev/vdb', '/dev/vdc',
+                                                     '/dev/vdd']
+        mock_local_unit.return_value = 'test/0'
+        kvstore = mock_kvstore.return_value
+        kvstore.__enter__.return_value = kvstore
+        kvstore.get.return_value = None
+        store = {'vdb@%s' % (uuid.uuid4()): {"status": "active",
+                                             "blkid": 'vdb-blkid-uuid'}}
+
+        def fake_kv_set(key, value):
+            store[key] = value
+
+        kvstore.set.side_effect = fake_kv_set
+
+        def fake_kv_get(key):
+            return store.get(key)
+
+        kvstore.get.side_effect = fake_kv_get
+
+        hooks.swift_storage_relation_joined()
+        env_uuid = mock_environ['JUJU_ENV_UUID']
+        devices = {"vdb@%s" % (env_uuid): {"status": "active",
+                                           "blkid": 'vdb-blkid-uuid'},
+                   "vdd@%s" % (env_uuid): {"status": "active",
+                                           "blkid": 'vdd-blkid-uuid'},
+                   "vdc@%s" % (env_uuid): {"status": "active",
+                                           "blkid": 'vdc-blkid-uuid'}}
+        kvstore.set.assert_called_with(
+            key='devices', value=json.dumps(devices)
         )
 
     @patch('sys.exit')
