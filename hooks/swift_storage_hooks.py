@@ -16,8 +16,10 @@ from lib.swift_storage_utils import (
     setup_storage,
     assert_charm_supports_ipv6,
     setup_rsync,
+    remember_devices,
     REQUIRED_INTERFACES,
     assess_status,
+    ensure_devs_tracked,
 )
 
 from lib.misc_utils import pause_aware_restart_on_change
@@ -27,6 +29,7 @@ from charmhelpers.core.hookenv import (
     config,
     log,
     relation_get,
+    relation_ids,
     relation_set,
     relations_of_type,
     status_set,
@@ -85,6 +88,12 @@ def config_changed():
             openstack_upgrade_available('swift'):
         status_set('maintenance', 'Running openstack upgrade')
         do_openstack_upgrade(configs=CONFIGS)
+
+    setup_storage()
+
+    for rid in relation_ids('swift-storage'):
+        swift_storage_relation_joined(rid=rid)
+
     CONFIGS.write_all()
 
     save_script_rc()
@@ -96,23 +105,28 @@ def config_changed():
 def upgrade_charm():
     apt_install(filter_installed_packages(PACKAGES), fatal=True)
     update_nrpe_config()
+    ensure_devs_tracked()
 
 
 @hooks.hook()
-def swift_storage_relation_joined():
-    devs = [os.path.basename(dev) for dev in determine_block_devices()]
+def swift_storage_relation_joined(rid=None):
     rel_settings = {
         'zone': config('zone'),
         'object_port': config('object-server-port'),
         'container_port': config('container-server-port'),
         'account_port': config('account-server-port'),
-        'device': ':'.join(devs),
     }
+
+    devs = determine_block_devices() or []
+    devs = [os.path.basename(d) for d in devs]
+    rel_settings['device'] = ':'.join(devs)
+    # Keep a reference of devices we are adding to the ring
+    remember_devices(devs)
 
     if config('prefer-ipv6'):
         rel_settings['private-address'] = get_ipv6_addr()[0]
 
-    relation_set(**rel_settings)
+    relation_set(relation_id=rid, **rel_settings)
 
 
 @hooks.hook('swift-storage-relation-changed')

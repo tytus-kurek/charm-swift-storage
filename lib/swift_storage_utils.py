@@ -1,5 +1,7 @@
+import json
 import os
 import re
+import subprocess
 import shutil
 import tempfile
 
@@ -24,6 +26,10 @@ from charmhelpers.fetch import (
     apt_update
 )
 
+from charmhelpers.core.unitdata import (
+    Storage as KVStore,
+)
+
 from charmhelpers.core.host import (
     mkdir,
     mount,
@@ -37,8 +43,12 @@ from charmhelpers.core.hookenv import (
     log,
     DEBUG,
     INFO,
+    WARNING,
     ERROR,
     unit_private_ip,
+    local_unit,
+    relation_get,
+    relation_ids,
 )
 
 from charmhelpers.contrib.storage.linux.utils import (
@@ -105,6 +115,16 @@ RESTART_MAP = {
 
 SWIFT_CONF_DIR = '/etc/swift'
 SWIFT_RING_EXT = 'ring.gz'
+
+# NOTE(hopem): we intentionally place this database outside of unit context so
+#              that if the unit, service or even entire environment is
+#              destroyed, there will still be a record of what devices were in
+#              use so that when the swift charm next executes, already used
+#              devices will not be unintentionally reformatted. If devices are
+#              to be recycled, they will need to be manually removed from this
+#              database.
+# FIXME: add charm support for removing devices (see LP: #1448190)
+KV_DB_PATH = '/var/lib/juju/swift_storage/charm_kvdata.db'
 
 
 def ensure_swift_directories():
@@ -226,9 +246,8 @@ def guess_block_devices():
 
 def determine_block_devices():
     block_device = config('block-device')
-
-    if not block_device or block_device in ['None', 'none']:
-        log('No storage devices specified in config as block-device',
+    if not block_device or block_device.lower() == 'none':
+        log("No storage devices specified in 'block_device' config",
             level=ERROR)
         return None
 
@@ -238,16 +257,163 @@ def determine_block_devices():
         bdevs = block_device.split(' ')
 
     # attempt to ensure block devices, but filter out missing devs
-    _none = ['None', 'none', None]
+    _none = ['None', 'none']
     valid_bdevs = \
-        [x for x in map(ensure_block_device, bdevs) if x not in _none]
+        [x for x in map(ensure_block_device, bdevs) if str(x).lower() not in
+         _none]
     log('Valid ensured block devices: %s' % valid_bdevs)
     return valid_bdevs
 
 
-def mkfs_xfs(bdev):
-    cmd = ['mkfs.xfs', '-f', '-i', 'size=1024', bdev]
+def mkfs_xfs(bdev, force=False):
+    """Format device with XFS filesystem.
+
+    By default this should fail if the device already has a filesystem on it.
+    """
+    cmd = ['mkfs.xfs']
+    if force:
+        cmd.append("-f")
+
+    cmd += ['-i', 'size=1024', bdev]
     check_call(cmd)
+
+
+def devstore_safe_load(devstore):
+    """Attempt to decode json data and return None if an error occurs while
+    also printing a log.
+    """
+    if not devstore:
+        return None
+
+    try:
+        return json.loads(devstore)
+    except ValueError:
+        log("Unable to decode JSON devstore", level=DEBUG)
+
+    return None
+
+
+def is_device_in_ring(dev, skip_rel_check=False, ignore_deactivated=True):
+    """Check if device has been added to the ring.
+
+    First check local KV store then check storage rel with proxy.
+    """
+    d = os.path.dirname(KV_DB_PATH)
+    if not os.path.isdir(d):
+        mkdir(d)
+        log("Device '%s' does not appear to be in use by Swift" % (dev),
+            level=INFO)
+        return False
+
+    # First check local KV store
+    kvstore = KVStore(KV_DB_PATH)
+    devstore = devstore_safe_load(kvstore.get(key='devices'))
+    kvstore.close()
+    deactivated = []
+    if devstore:
+        blk_uuid = get_device_blkid("/dev/%s" % (dev))
+        env_uuid = os.environ['JUJU_ENV_UUID']
+        masterkey = "%s@%s" % (dev, env_uuid)
+        if (masterkey in devstore and
+                devstore[masterkey].get('blkid') == blk_uuid and
+                devstore[masterkey].get('status') == 'active'):
+            log("Device '%s' appears to be in use by Swift (found in local "
+                "devstore)" % (dev), level=INFO)
+            return True
+
+        for key, val in devstore.iteritems():
+            if key != masterkey and val.get('blkid') == blk_uuid:
+                log("Device '%s' appears to be in use by Swift (found in "
+                    "local devstore) but has a different JUJU_ENV_UUID "
+                    "(current=%s, expected=%s). "
+                    "This could indicate that the device was added as part of "
+                    "a previous deployment and will require manual removal or "
+                    "updating if it needs to be reformatted."
+                    % (dev, key, masterkey), level=INFO)
+                return True
+
+        if ignore_deactivated:
+            deactivated = [k == masterkey and v.get('blkid') == blk_uuid and
+                           v.get('status') != 'active'
+                           for k, v in devstore.iteritems()]
+
+    if skip_rel_check:
+        log("Device '%s' does not appear to be in use by swift (searched "
+            "local devstore only)" % (dev), level=INFO)
+        return False
+
+    # Then check swift-storage relation with proxy
+    for rid in relation_ids('swift-storage'):
+        devstore = relation_get(attribute='device', rid=rid, unit=local_unit())
+        if devstore and dev in devstore.split(':'):
+            if not ignore_deactivated or dev not in deactivated:
+                log("Device '%s' appears to be in use by swift (found on "
+                    "proxy relation) but was not found in local devstore so "
+                    "will be added to the cache" % (dev), level=INFO)
+                remember_devices([dev])
+                return True
+
+    log("Device '%s' does not appear to be in use by swift (searched local "
+        "devstore and proxy relation)" % (dev), level=INFO)
+    return False
+
+
+def get_device_blkid(dev):
+    blk_uuid = subprocess.check_output(['blkid', '-s', 'UUID', dev])
+    blk_uuid = re.match(r'^%s:\s+UUID="(.+)"$' % (dev), blk_uuid.strip())
+    if blk_uuid:
+        return blk_uuid.group(1)
+    else:
+        log("Failed to obtain device UUID for device '%s' - returning None" %
+            dev, level=WARNING)
+
+    return None
+
+
+def remember_devices(devs):
+    """Add device to local store of ringed devices."""
+    d = os.path.dirname(KV_DB_PATH)
+    if not os.path.isdir(d):
+        mkdir(d)
+
+    kvstore = KVStore(KV_DB_PATH)
+    devstore = devstore_safe_load(kvstore.get(key='devices')) or {}
+    env_uuid = os.environ['JUJU_ENV_UUID']
+    for dev in devs:
+        blk_uuid = get_device_blkid("/dev/%s" % (dev))
+        key = "%s@%s" % (dev, env_uuid)
+        if key in devstore and devstore[key].get('blkid') == blk_uuid:
+            log("Device '%s' already in devstore (status:%s)" %
+                (dev, devstore[key].get('status')), level=DEBUG)
+        else:
+            existing = [(k, v) for k, v in devstore.iteritems()
+                        if v.get('blkid') == blk_uuid and
+                        re.match("^(.+)@(.+)$", k).group(1) == dev]
+            if existing:
+                log("Device '%s' already in devstore but has a different "
+                    "JUJU_ENV_UUID (%s)" %
+                    (dev, re.match(".+@(.+)$", existing[0][0]).group(1)),
+                    level=WARNING)
+            else:
+                log("Adding device '%s' with blkid='%s' to devstore" %
+                    (blk_uuid, dev),
+                    level=DEBUG)
+                devstore[key] = {'blkid': blk_uuid, 'status': 'active'}
+
+    if devstore:
+        kvstore.set(key='devices', value=json.dumps(devstore))
+
+    kvstore.flush()
+    kvstore.close()
+
+
+def ensure_devs_tracked():
+    for rid in relation_ids('swift-storage'):
+        devs = relation_get(attribute='device', rid=rid, unit=local_unit())
+        if devs:
+            for dev in devs.split(':'):
+                # this will migrate if not already in the local store
+                is_device_in_ring(dev, skip_rel_check=True)
 
 
 def setup_storage():
@@ -256,13 +422,27 @@ def setup_storage():
     mkdir(os.path.join('/srv', 'node'),
           owner='swift', group='swift',
           perms=0o755)
+    reformat = str(config('overwrite')).lower() == "true"
     for dev in determine_block_devices():
-        if config('overwrite') in ['True', 'true']:
+        if is_device_in_ring(os.path.basename(dev)):
+            log("Device '%s' already in the ring - ignoring" % (dev))
+            continue
+
+        if reformat:
             clean_storage(dev)
-        # if not cleaned and in use, mkfs should fail.
-        mkfs_xfs(dev)
-        _dev = os.path.basename(dev)
-        _mp = os.path.join('/srv', 'node', _dev)
+
+        try:
+            # If not cleaned and in use, mkfs should fail.
+            mkfs_xfs(dev, force=reformat)
+        except subprocess.CalledProcessError as exc:
+            # This is expected is a formatted device is provided and we are
+            # forcing the format.
+            log("Format device '%s' failed (%s) - continuing to next device" %
+                (dev, exc), level=WARNING)
+            continue
+
+        basename = os.path.basename(dev)
+        _mp = os.path.join('/srv', 'node', basename)
         mkdir(_mp, owner='swift', group='swift')
 
         options = None
@@ -272,7 +452,7 @@ def setup_storage():
             dev = loopback_device
             options = "loop, defaults"
 
-        mountpoint = '/srv/node/%s' % _dev
+        mountpoint = '/srv/node/%s' % basename
         filesystem = "xfs"
 
         mount(dev, mountpoint, filesystem=filesystem)
