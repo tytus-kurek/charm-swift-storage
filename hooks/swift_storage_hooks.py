@@ -52,6 +52,7 @@ from charmhelpers.contrib.network.ip import (
     get_ipv6_addr
 )
 from charmhelpers.contrib.charmsupport import nrpe
+from charmhelpers.contrib.hardening.harden import harden
 
 from distutils.dir_util import mkpath
 
@@ -62,6 +63,7 @@ SUDOERS_D = '/etc/sudoers.d'
 
 
 @hooks.hook('install.real')
+@harden()
 def install():
     status_set('maintenance', 'Executing pre-install')
     execd_preinstall()
@@ -76,6 +78,7 @@ def install():
 
 @hooks.hook('config-changed')
 @pause_aware_restart_on_change(RESTART_MAP)
+@harden()
 def config_changed():
     if config('prefer-ipv6'):
         status_set('maintenance', 'Configuring ipv6')
@@ -102,6 +105,7 @@ def config_changed():
 
 
 @hooks.hook('upgrade-charm')
+@harden()
 def upgrade_charm():
     apt_install(filter_installed_packages(PACKAGES), fatal=True)
     update_nrpe_config()
@@ -177,6 +181,12 @@ def update_nrpe_config():
     )
     nrpe.add_init_service_checks(nrpe_setup, SWIFT_SVCS, current_unit)
     nrpe_setup.write()
+
+
+@hooks.hook('update-status')
+@harden()
+def update_status():
+    log('Updating status.')
 
 
 def main():

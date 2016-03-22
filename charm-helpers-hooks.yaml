@@ -13,3 +13,4 @@ include:
     - contrib.network.ip
     - contrib.python.packages
     - contrib.charmsupport
+    - contrib.hardening|inc=*

@@ -5,9 +5,12 @@ import uuid
 
 from test_utils import CharmTestCase, patch_open
 
-with patch('hooks.lib.misc_utils.is_paused') as is_paused:
-    with patch('hooks.lib.swift_storage_utils.register_configs') as _:
-        import hooks.swift_storage_hooks as hooks
+with patch('hooks.charmhelpers.contrib.hardening.harden.harden') as mock_dec:
+    mock_dec.side_effect = (lambda *dargs, **dkwargs: lambda f:
+                            lambda *args, **kwargs: f(*args, **kwargs))
+    with patch('hooks.lib.misc_utils.is_paused') as is_paused:
+        with patch('hooks.lib.swift_storage_utils.register_configs') as _:
+            import hooks.swift_storage_hooks as hooks
 
 from lib.swift_storage_utils import PACKAGES
 
