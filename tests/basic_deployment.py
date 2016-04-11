@@ -158,6 +158,9 @@ class SwiftStorageBasicDeployment(OpenStackAmuletDeployment):
             self.swift_storage_sentry: swift_storage_services
         }
 
+        if self._get_openstack_release() >= self.trusty_liberty:
+            service_names[self.keystone_sentry] = ['apache2']
+
         ret = u.validate_services_by_name(service_names)
         if ret:
             amulet.raise_status(amulet.FAIL, msg=ret)
