@@ -1,3 +1,5 @@
+import os
+
 from charmhelpers.contrib.storage.linux.utils import (
     is_block_device,
     zap_disk,
@@ -41,6 +43,15 @@ def ensure_block_device(block_device):
 
     :returns: str: Full path of ensured block device.
     '''
+    if block_device.startswith("/"):
+        # Resolve non-relative link(s) if device is a symlink to a real device.
+        # This fixes/prevents bug #1577408.
+        real_device = os.path.realpath(block_device)
+        if real_device != block_device:
+            log('Block device "{}" is a symlink to "{}". Using "{}".'.format(
+                block_device, real_device, real_device), level=INFO)
+            block_device = real_device
+
     _none = ['None', 'none', None]
     if (block_device in _none):
         log('prepare_storage(): Missing required input: '
