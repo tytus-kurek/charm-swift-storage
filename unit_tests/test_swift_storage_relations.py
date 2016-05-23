@@ -137,9 +137,12 @@ class SwiftStorageRelationsTests(CharmTestCase):
     @patch('hooks.lib.swift_storage_utils.relation_ids', lambda *args: [])
     @patch('hooks.lib.swift_storage_utils.KVStore')
     @patch.object(uuid, 'uuid4', lambda: 'a-test-uuid')
-    def test_storage_joined_single_device(self, mock_kvstore, mock_local_unit,
-                                          mock_rel_set, mock_environ):
-        mock_environ.get.side_effect = {'JUJU_ENV_UUID': uuid.uuid4()}
+    def _test_storage_joined_single_device(self, mock_kvstore, mock_local_unit,
+                                           mock_rel_set, mock_environ,
+                                           env_key):
+        test_uuid = uuid.uuid4()
+        test_environ = {env_key: test_uuid}
+        mock_environ.get.side_effect = test_environ.get
         mock_local_unit.return_value = 'test/0'
         kvstore = mock_kvstore.return_value
         kvstore.__enter__.return_value = kvstore
@@ -166,11 +169,19 @@ class SwiftStorageRelationsTests(CharmTestCase):
             return rel_settings.get(key)
 
         kvstore.get.side_effect = fake_kv_get
-        devices = {"vdb@%s" % (mock_environ['JUJU_ENV_UUID']):
+        devices = {"vdb@%s" % (test_uuid):
                    {"status": "active",
                     "blkid": 'a-test-uuid'}}
         kvstore.set.assert_called_with(key='devices',
                                        value=json.dumps(devices))
+
+    def test_storage_joined_single_device_juju_1(self):
+        '''Ensure use of JUJU_ENV_UUID for Juju < 2'''
+        self._test_storage_joined_single_device(env_key='JUJU_ENV_UUID')
+
+    def test_storage_joined_single_device_juju_2(self):
+        '''Ensure use of JUJU_MODEL_UUID for Juju >= 2'''
+        self._test_storage_joined_single_device(env_key='JUJU_MODEL_UUID')
 
     @patch('hooks.lib.swift_storage_utils.get_device_blkid',
            lambda dev: '%s-blkid-uuid' % os.path.basename(dev))
@@ -210,7 +221,9 @@ class SwiftStorageRelationsTests(CharmTestCase):
     @patch.object(uuid, 'uuid4', lambda: 'a-test-uuid')
     def test_storage_joined_multi_device(self, mock_kvstore, mock_local_unit,
                                          mock_environ):
-        mock_environ.get.side_effect = {'JUJU_ENV_UUID': uuid.uuid4()}
+        test_uuid = uuid.uuid4()
+        test_environ = {'JUJU_ENV_UUID': test_uuid}
+        mock_environ.get.side_effect = test_environ.get
         self.determine_block_devices.return_value = ['/dev/vdb', '/dev/vdc',
                                                      '/dev/vdd']
         mock_local_unit.return_value = 'test/0'
@@ -230,13 +243,12 @@ class SwiftStorageRelationsTests(CharmTestCase):
         kvstore.get.side_effect = fake_kv_get
 
         hooks.swift_storage_relation_joined()
-        env_uuid = mock_environ['JUJU_ENV_UUID']
-        devices = {"vdb@%s" % (env_uuid): {"status": "active",
-                                           "blkid": 'vdb-blkid-uuid'},
-                   "vdd@%s" % (env_uuid): {"status": "active",
-                                           "blkid": 'vdd-blkid-uuid'},
-                   "vdc@%s" % (env_uuid): {"status": "active",
-                                           "blkid": 'vdc-blkid-uuid'}}
+        devices = {"vdb@%s" % (test_uuid): {"status": "active",
+                                            "blkid": 'vdb-blkid-uuid'},
+                   "vdd@%s" % (test_uuid): {"status": "active",
+                                            "blkid": 'vdd-blkid-uuid'},
+                   "vdc@%s" % (test_uuid): {"status": "active",
+                                            "blkid": 'vdc-blkid-uuid'}}
         kvstore.set.assert_called_with(
             key='devices', value=json.dumps(devices)
         )
@@ -252,7 +264,9 @@ class SwiftStorageRelationsTests(CharmTestCase):
                                                              mock_kvstore,
                                                              mock_local_unit,
                                                              mock_environ):
-        mock_environ.get.return_value = {'JUJU_ENV_UUID': uuid.uuid4()}
+        test_uuid = uuid.uuid4()
+        test_environ = {'JUJU_ENV_UUID': test_uuid}
+        mock_environ.get.side_effect = test_environ.get
         self.determine_block_devices.return_value = ['/dev/vdb', '/dev/vdc',
                                                      '/dev/vdd']
         mock_local_unit.return_value = 'test/0'
@@ -273,13 +287,12 @@ class SwiftStorageRelationsTests(CharmTestCase):
         kvstore.get.side_effect = fake_kv_get
 
         hooks.swift_storage_relation_joined()
-        env_uuid = mock_environ['JUJU_ENV_UUID']
-        devices = {"vdb@%s" % (env_uuid): {"status": "active",
-                                           "blkid": 'vdb-blkid-uuid'},
-                   "vdd@%s" % (env_uuid): {"status": "active",
-                                           "blkid": 'vdd-blkid-uuid'},
-                   "vdc@%s" % (env_uuid): {"status": "active",
-                                           "blkid": 'vdc-blkid-uuid'}}
+        devices = {"vdb@%s" % (test_uuid): {"status": "active",
+                                            "blkid": 'vdb-blkid-uuid'},
+                   "vdd@%s" % (test_uuid): {"status": "active",
+                                            "blkid": 'vdd-blkid-uuid'},
+                   "vdc@%s" % (test_uuid): {"status": "active",
+                                            "blkid": 'vdc-blkid-uuid'}}
         kvstore.set.assert_called_with(
             key='devices', value=json.dumps(devices)
         )

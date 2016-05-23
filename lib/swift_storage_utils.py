@@ -312,7 +312,8 @@ def is_device_in_ring(dev, skip_rel_check=False, ignore_deactivated=True):
     deactivated = []
     if devstore:
         blk_uuid = get_device_blkid("/dev/%s" % (dev))
-        env_uuid = os.environ['JUJU_ENV_UUID']
+        env_uuid = os.environ.get('JUJU_ENV_UUID',
+                                  os.environ.get('JUJU_MODEL_UUID'))
         masterkey = "%s@%s" % (dev, env_uuid)
         if (masterkey in devstore and
                 devstore[masterkey].get('blkid') == blk_uuid and
@@ -324,8 +325,8 @@ def is_device_in_ring(dev, skip_rel_check=False, ignore_deactivated=True):
         for key, val in devstore.iteritems():
             if key != masterkey and val.get('blkid') == blk_uuid:
                 log("Device '%s' appears to be in use by Swift (found in "
-                    "local devstore) but has a different JUJU_ENV_UUID "
-                    "(current=%s, expected=%s). "
+                    "local devstore) but has a different "
+                    "JUJU_[ENV|MODEL]_UUID (current=%s, expected=%s). "
                     "This could indicate that the device was added as part of "
                     "a previous deployment and will require manual removal or "
                     "updating if it needs to be reformatted."
@@ -378,7 +379,8 @@ def remember_devices(devs):
 
     kvstore = KVStore(KV_DB_PATH)
     devstore = devstore_safe_load(kvstore.get(key='devices')) or {}
-    env_uuid = os.environ['JUJU_ENV_UUID']
+    env_uuid = os.environ.get('JUJU_ENV_UUID',
+                              os.environ.get('JUJU_MODEL_UUID'))
     for dev in devs:
         blk_uuid = get_device_blkid("/dev/%s" % (dev))
         key = "%s@%s" % (dev, env_uuid)
@@ -391,7 +393,7 @@ def remember_devices(devs):
                         re.match("^(.+)@(.+)$", k).group(1) == dev]
             if existing:
                 log("Device '%s' already in devstore but has a different "
-                    "JUJU_ENV_UUID (%s)" %
+                    "JUJU_[ENV|MODEL]_UUID (%s)" %
                     (dev, re.match(".+@(.+)$", existing[0][0]).group(1)),
                     level=WARNING)
             else:
