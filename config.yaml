@@ -60,8 +60,8 @@ options:
     type: int
     description: Listening port of the swift-account-server.
   worker-multiplier:
-    default: 1
-    type: int
+    default: 1.0
+    type: float
     description: |
       The CPU multiplier to use when configuring worker processes for the
       account, container and object server processes.
