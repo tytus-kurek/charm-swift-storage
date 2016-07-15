@@ -197,7 +197,7 @@ class SwiftStorageBasicDeployment(OpenStackAmuletDeployment):
                  'tenantId': u.not_null,
                  'id': u.not_null,
                  'email': u'juju@localhost'}
-        user4 = {'name': 'swift',
+        user4 = {'name': 's3_swift',
                  'enabled': True,
                  'tenantId': u.not_null,
                  'id': u.not_null,
@@ -219,7 +219,7 @@ class SwiftStorageBasicDeployment(OpenStackAmuletDeployment):
                        'id': u.not_null}
 
         expected = {'image': [endpoint_id], 'object-store': [endpoint_id],
-                    'identity': [endpoint_id]}
+                    'identity': [endpoint_id], 's3': [endpoint_id]}
         actual = self.keystone_demo.service_catalog.get_endpoints()
 
         ret = u.validate_svc_catalog_endpoint_data(expected, actual)
