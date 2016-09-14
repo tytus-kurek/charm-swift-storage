@@ -17,6 +17,11 @@ description: |
 tags:
   - openstack
   - file-servers
+series:
+  - xenial
+  - trusty
+  - precise
+  - yakkety
 provides:
   nrpe-external-master:
     interface: nrpe-external-master
