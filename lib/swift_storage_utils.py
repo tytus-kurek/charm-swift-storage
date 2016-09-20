@@ -81,6 +81,8 @@ PACKAGES = [
     'xfsprogs', 'gdisk', 'lvm2', 'python-jinja2', 'python-psutil',
 ]
 
+VERSION_PACKAGE = 'swift-account'
+
 TEMPLATES = 'templates/'
 
 REQUIRED_INTERFACES = {

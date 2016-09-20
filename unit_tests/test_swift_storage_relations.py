@@ -59,6 +59,7 @@ TO_PATCH = [
     'get_ipv6_addr',
     'status_set',
     'set_os_workload_status',
+    'os_application_version_set',
 ]
 
 

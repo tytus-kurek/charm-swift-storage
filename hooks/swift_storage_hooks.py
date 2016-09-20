@@ -34,6 +34,7 @@ from lib.swift_storage_utils import (
     REQUIRED_INTERFACES,
     assess_status,
     ensure_devs_tracked,
+    VERSION_PACKAGE,
 )
 
 from lib.misc_utils import pause_aware_restart_on_change
@@ -61,6 +62,7 @@ from charmhelpers.contrib.openstack.utils import (
     configure_installation_source,
     openstack_upgrade_available,
     set_os_workload_status,
+    os_application_version_set,
 )
 from charmhelpers.contrib.network.ip import (
     get_ipv6_addr
@@ -210,6 +212,7 @@ def main():
         log('Unknown hook {} - skipping.'.format(e))
     set_os_workload_status(CONFIGS, REQUIRED_INTERFACES,
                            charm_func=assess_status)
+    os_application_version_set(VERSION_PACKAGE)
 
 
 if __name__ == '__main__':
