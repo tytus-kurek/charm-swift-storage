@@ -165,6 +165,17 @@ class SwiftStorageUtilsTests(CharmTestCase):
         self.test_config.set('block-device', bdevs)
         result = swift_utils.determine_block_devices()
         ex = ['/dev/vdb', '/dev/vdc', '/tmp/swift.img']
+        ex = list(set(ex))
+        self.assertEquals(ex, result)
+
+    @patch.object(swift_utils, 'ensure_block_device')
+    def test_determine_block_device_dublicate_dev(self, _ensure):
+        _ensure.side_effect = self._fake_ensure
+        bdevs = '/dev/vdb /dev/vdc /dev/vdc /dev/vdb /tmp/swift.img|1G'
+        self.test_config.set('block-device', bdevs)
+        result = swift_utils.determine_block_devices()
+        ex = ['/dev/vdb', '/dev/vdc', '/tmp/swift.img']
+        ex = list(set(ex))
         self.assertEquals(ex, result)
 
     @patch.object(swift_utils, 'ensure_block_device')

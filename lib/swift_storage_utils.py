@@ -258,6 +258,7 @@ def determine_block_devices():
     else:
         bdevs = block_device.split(' ')
 
+    bdevs = list(set(bdevs))
     # attempt to ensure block devices, but filter out missing devs
     _none = ['None', 'none']
     valid_bdevs = \
