@@ -38,27 +38,27 @@ class SwiftStorageContextTests(CharmTestCase):
     def test_swift_storage_context_missing_data(self):
         self.relation_ids.return_value = []
         ctxt = swift_context.SwiftStorageContext()
-        self.assertEquals(ctxt(), {})
+        self.assertEqual(ctxt(), {})
         self.relation_ids.return_value = ['swift-proxy:0']
         self.related_units.return_value = ['swift-proxy/0']
         self.relation_get.return_value = ''
-        self.assertEquals(ctxt(), {})
+        self.assertEqual(ctxt(), {})
 
     def test_swift_storage_context_with_data(self):
         self.relation_ids.return_value = []
         ctxt = swift_context.SwiftStorageContext()
-        self.assertEquals(ctxt(), {})
+        self.assertEqual(ctxt(), {})
         self.relation_ids.return_value = ['swift-proxy:0']
         self.related_units.return_value = ['swift-proxy/0']
         self.relation_get.return_value = 'fooooo'
-        self.assertEquals(ctxt(), {'swift_hash': 'fooooo'})
+        self.assertEqual(ctxt(), {'swift_hash': 'fooooo'})
 
     def test_rsync_context(self):
         self.unit_private_ip.return_value = '10.0.0.5'
         ctxt = swift_context.RsyncContext()
         ctxt.enable_rsyncd = MagicMock()
         ctxt.enable_rsyncd.return_value = True
-        self.assertEquals({'local_ip': '10.0.0.5'}, ctxt())
+        self.assertEqual({'local_ip': '10.0.0.5'}, ctxt())
         self.assertTrue(ctxt.enable_rsyncd.called)
 
     def test_rsync_context_ipv6(self):
@@ -67,7 +67,7 @@ class SwiftStorageContextTests(CharmTestCase):
         ctxt = swift_context.RsyncContext()
         ctxt.enable_rsyncd = MagicMock()
         ctxt.enable_rsyncd.return_value = True
-        self.assertEquals({'local_ip': '2001:db8:1::1'}, ctxt())
+        self.assertEqual({'local_ip': '2001:db8:1::1'}, ctxt())
         self.assertTrue(ctxt.enable_rsyncd.called)
 
     def test_rsync_enable_rsync(self):
@@ -103,4 +103,4 @@ class SwiftStorageContextTests(CharmTestCase):
             'container_max_connections': '10',
             'object_max_connections': '10',
         }
-        self.assertEquals(ex, result)
+        self.assertEqual(ex, result)
