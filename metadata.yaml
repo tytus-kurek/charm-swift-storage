@@ -19,8 +19,8 @@ tags:
   - file-servers
 series:
   - xenial
+  - zesty
   - trusty
-  - precise
   - yakkety
 provides:
   nrpe-external-master:

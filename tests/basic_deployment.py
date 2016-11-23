@@ -174,13 +174,12 @@ class SwiftStorageBasicDeployment(OpenStackAmuletDeployment):
                                   'swift-container',
                                   'swift-container-auditor',
                                   'swift-container-replicator',
+                                  'swift-container-sync',
                                   'swift-container-updater',
                                   'swift-object',
                                   'swift-object-auditor',
                                   'swift-object-replicator',
                                   'swift-object-updater']
-        if self._get_openstack_release() >= self.precise_icehouse:
-            swift_storage_services.append('swift-container-sync')
         service_names = {
             self.keystone_sentry: ['keystone'],
             self.glance_sentry: ['glance-registry',
@@ -504,8 +503,6 @@ class SwiftStorageBasicDeployment(OpenStackAmuletDeployment):
                                   'swift-object-replicator',
                                   'swift-object-server',
                                   'swift-object-updater']
-        if self._get_openstack_release() < self.precise_icehouse:
-            swift_storage_services.remove('swift-container-sync')
 
         u.get_unit_process_ids(
             {self.swift_storage_sentry: swift_storage_services},
@@ -563,8 +560,6 @@ class SwiftStorageBasicDeployment(OpenStackAmuletDeployment):
                     'swift-object-replicator',
                     'swift-object-updater',
                     'swift-container-sync']
-        if self._get_openstack_release() < self.precise_icehouse:
-            services.remove('swift-container-sync')
 
         # Pause the unit
         u.log.debug('Pausing the unit...')
