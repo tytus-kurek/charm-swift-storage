@@ -19,7 +19,6 @@ tags:
   - file-servers
 series:
   - xenial
-  - zesty
   - trusty
   - yakkety
 provides:
