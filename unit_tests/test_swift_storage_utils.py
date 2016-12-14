@@ -114,7 +114,7 @@ class SwiftStorageUtilsTests(CharmTestCase):
                 call('/var/cache/swift', owner='swift', group='swift'),
                 call('/srv/node', owner='swift', group='swift')
             ]
-        self.assertEquals(ex_dirs, self.mkdir.call_args_list)
+        self.assertEqual(ex_dirs, self.mkdir.call_args_list)
 
     def test_swift_init_nonfatal(self):
         swift_utils.swift_init('all', 'start')
@@ -135,13 +135,13 @@ class SwiftStorageUtilsTests(CharmTestCase):
                            '--retry-connrefused', '-t', '10',
                            '-O', '/etc/swift/%s.ring.gz' % s])
                 wgets.append(_c)
-            self.assertEquals(wgets, self.check_call.call_args_list)
+            self.assertEqual(wgets, self.check_call.call_args_list)
         except:
             shutil.rmtree(swift_utils.SWIFT_CONF_DIR)
 
     def test_determine_block_device_no_config(self):
         self.test_config.set('block-device', None)
-        self.assertEquals(swift_utils.determine_block_devices(), None)
+        self.assertEqual(swift_utils.determine_block_devices(), None)
 
     def _fake_ensure(self, bdev):
         # /dev/vdz is a missing dev
@@ -156,7 +156,7 @@ class SwiftStorageUtilsTests(CharmTestCase):
         bdevs = '/dev/vdb'
         self.test_config.set('block-device', bdevs)
         result = swift_utils.determine_block_devices()
-        self.assertEquals(['/dev/vdb'], result)
+        self.assertEqual(['/dev/vdb'], result)
 
     @patch.object(swift_utils, 'ensure_block_device')
     def test_determine_block_device_multi_dev(self, _ensure):
@@ -166,7 +166,7 @@ class SwiftStorageUtilsTests(CharmTestCase):
         result = swift_utils.determine_block_devices()
         ex = ['/dev/vdb', '/dev/vdc', '/tmp/swift.img']
         ex = list(set(ex))
-        self.assertEquals(ex, result)
+        self.assertEqual(ex, result)
 
     @patch.object(swift_utils, 'ensure_block_device')
     def test_determine_block_device_dublicate_dev(self, _ensure):
@@ -176,7 +176,7 @@ class SwiftStorageUtilsTests(CharmTestCase):
         result = swift_utils.determine_block_devices()
         ex = ['/dev/vdb', '/dev/vdc', '/tmp/swift.img']
         ex = list(set(ex))
-        self.assertEquals(ex, result)
+        self.assertEqual(ex, result)
 
     @patch.object(swift_utils, 'ensure_block_device')
     def test_determine_block_device_with_missing(self, _ensure):
@@ -203,7 +203,7 @@ class SwiftStorageUtilsTests(CharmTestCase):
         _find.return_value = ['/dev/vdb', '/dev/sdb']
         result = swift_utils.determine_block_devices()
         self.assertTrue(_find.called)
-        self.assertEquals(result, ['/dev/vdb', '/dev/sdb'])
+        self.assertEqual(result, ['/dev/vdb', '/dev/sdb'])
 
     @patch.object(swift_utils, 'check_output')
     @patch.object(swift_utils, 'find_block_devices')
@@ -222,7 +222,7 @@ class SwiftStorageUtilsTests(CharmTestCase):
         _find.return_value = ['/dev/vdb']
         result = swift_utils.determine_block_devices()
         self.assertTrue(_find.called)
-        self.assertEquals(result, [])
+        self.assertEqual(result, [])
 
     def test_mkfs_xfs(self):
         swift_utils.mkfs_xfs('/dev/sdb')
@@ -298,7 +298,7 @@ class SwiftStorageUtilsTests(CharmTestCase):
             _file.readlines.return_value = PROC_PARTITIONS.split('\n')
             result = swift_utils.find_block_devices()
         ex = ['/dev/sdb', '/dev/vdb', '/dev/cciss/c1d0']
-        self.assertEquals(ex, result)
+        self.assertEqual(ex, result)
 
     def test_find_block_devices_real_world(self):
         self.is_block_device.return_value = True
@@ -310,7 +310,7 @@ class SwiftStorageUtilsTests(CharmTestCase):
             _file.readlines.return_value = REAL_WORLD_PARTITIONS.split('\n')
             result = swift_utils.find_block_devices()
         expected = ["/dev/sda"]
-        self.assertEquals(expected, result)
+        self.assertEqual(expected, result)
 
     def test_save_script_rc(self):
         self.unit_private_ip.return_value = '10.0.0.1'
@@ -373,7 +373,7 @@ class SwiftStorageUtilsTests(CharmTestCase):
                                                       'bind_host_context',
                                                       'worker_context'])
         ]
-        self.assertEquals(ex, configs.register.call_args_list)
+        self.assertEqual(ex, configs.register.call_args_list)
 
     def test_do_upgrade(self):
         self.is_paused.return_value = False
@@ -430,5 +430,5 @@ class SwiftStorageUtilsTests(CharmTestCase):
         ret = '/dev/vdb: UUID="808bc298-0609-4619-aaef-ed7a5ab0ebb7" \n'
         mock_check_output.return_value = ret
         uuid = swift_utils.get_device_blkid(dev)
-        self.assertEquals(uuid, "808bc298-0609-4619-aaef-ed7a5ab0ebb7")
+        self.assertEqual(uuid, "808bc298-0609-4619-aaef-ed7a5ab0ebb7")
         mock_check_output.assert_called_with(cmd)
