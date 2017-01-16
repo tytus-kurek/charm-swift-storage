@@ -55,7 +55,10 @@ from charmhelpers.fetch import (
     apt_update,
     filter_installed_packages
 )
-from charmhelpers.core.host import rsync
+from charmhelpers.core.host import (
+    add_to_updatedb_prunepath,
+    rsync,
+)
 from charmhelpers.payload.execd import execd_preinstall
 
 from charmhelpers.contrib.openstack.utils import (
@@ -76,6 +79,7 @@ hooks = Hooks()
 CONFIGS = register_configs()
 NAGIOS_PLUGINS = '/usr/local/lib/nagios/plugins'
 SUDOERS_D = '/etc/sudoers.d'
+STORAGE_MOUNT_PATH = '/srv/node'
 
 
 @hooks.hook('install.real')
@@ -118,6 +122,7 @@ def config_changed():
     save_script_rc()
     if relations_of_type('nrpe-external-master'):
         update_nrpe_config()
+    add_to_updatedb_prunepath(STORAGE_MOUNT_PATH)
 
 
 @hooks.hook('upgrade-charm')

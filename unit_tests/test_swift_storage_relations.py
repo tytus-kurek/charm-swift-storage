@@ -60,6 +60,7 @@ TO_PATCH = [
     'status_set',
     'set_os_workload_status',
     'os_application_version_set',
+    'add_to_updatedb_prunepath',
 ]
 
 
@@ -70,6 +71,10 @@ class SwiftStorageRelationsTests(CharmTestCase):
                                                       TO_PATCH)
         self.config.side_effect = self.test_config.get
         self.relation_get.side_effect = self.test_relation.get
+
+    def test_prunepath(self):
+        hooks.config_changed()
+        self.add_to_updatedb_prunepath.assert_called_with("/srv/node")
 
     def test_install_hook(self):
         self.test_config.set('openstack-origin', 'cloud:precise-havana')
