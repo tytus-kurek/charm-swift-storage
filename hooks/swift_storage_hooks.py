@@ -59,6 +59,9 @@ from charmhelpers.core.host import (
     add_to_updatedb_prunepath,
     rsync,
 )
+
+from charmhelpers.core.sysctl import create as create_sysctl
+
 from charmhelpers.payload.execd import execd_preinstall
 
 from charmhelpers.contrib.openstack.utils import (
@@ -122,6 +125,11 @@ def config_changed():
     save_script_rc()
     if relations_of_type('nrpe-external-master'):
         update_nrpe_config()
+
+    sysctl_dict = config('sysctl')
+    if sysctl_dict:
+        create_sysctl(sysctl_dict, '/etc/sysctl.d/50-swift-storage-charm.conf')
+
     add_to_updatedb_prunepath(STORAGE_MOUNT_PATH)
 
 
