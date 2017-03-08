@@ -8,7 +8,7 @@ those are also managed by Juju.  For Swift to function, you'll also need to
 deploy an additional swift-proxy using the cs:precise/swift-proxy charm.
 
 For more information about Swift and its architecture, visit the official
-project website at http://swift.openstack.org.
+project website https://docs.openstack.org/developer/swift.
 
 This charm was developed to support deploying multiple version of Swift on
 Ubuntu Precise 12.04, as they relate to the release series of OpenStack.  That
