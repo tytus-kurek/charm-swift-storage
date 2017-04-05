@@ -25,6 +25,7 @@ from charmhelpers.core.unitdata import HookData, kv
 from charmhelpers.contrib.openstack.utils import (
     get_os_codename_package,
     set_os_workload_status,
+    CompareOpenStackReleases,
 )
 from lib.swift_storage_utils import (
     assess_status,
@@ -40,7 +41,8 @@ def _get_services():
     """Return a list of services that need to be (un)paused."""
     services = SWIFT_SVCS[:]
     # Before Icehouse there was no swift-container-sync
-    if get_os_codename_package("swift-container") < "icehouse":
+    _os_release = get_os_codename_package("swift-container")
+    if CompareOpenStackReleases(_os_release) < "icehouse":
         services.remove("swift-container-sync")
     return services
 

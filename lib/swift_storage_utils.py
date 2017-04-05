@@ -35,7 +35,8 @@ from charmhelpers.core.host import (
     mount,
     fstab_add,
     service_restart,
-    lsb_release
+    lsb_release,
+    CompareHostReleases,
 )
 
 from charmhelpers.core.hookenv import (
@@ -513,7 +514,8 @@ def save_script_rc():
 
 def assert_charm_supports_ipv6():
     """Check whether we are able to support charms ipv6."""
-    if lsb_release()['DISTRIB_CODENAME'].lower() < "trusty":
+    _release = lsb_release()['DISTRIB_CODENAME'].lower()
+    if CompareHostReleases(_release) < "trusty":
         raise Exception("IPv6 is not supported in the charms for Ubuntu "
                         "versions less than Trusty 14.04")
 
