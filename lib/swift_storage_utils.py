@@ -464,8 +464,8 @@ def setup_storage():
         mount(dev, mountpoint, filesystem=filesystem)
         fstab_add(dev, mountpoint, filesystem, options=options)
 
-    check_call(['chown', '-R', 'swift:swift', '/srv/node/'])
-    check_call(['chmod', '-R', '0755', '/srv/node/'])
+        check_call(['chown', '-R', 'swift:swift', mountpoint])
+        check_call(['chmod', '-R', '0755', mountpoint])
 
 
 @retry_on_exception(3, base_delay=2, exc_type=CalledProcessError)

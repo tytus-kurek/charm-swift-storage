@@ -169,7 +169,7 @@ class SwiftStorageUtilsTests(CharmTestCase):
         self.assertEqual(ex, result)
 
     @patch.object(swift_utils, 'ensure_block_device')
-    def test_determine_block_device_dublicate_dev(self, _ensure):
+    def test_determine_block_device_duplicate_dev(self, _ensure):
         _ensure.side_effect = self._fake_ensure
         bdevs = '/dev/vdb /dev/vdc /dev/vdc /dev/vdb /tmp/swift.img|1G'
         self.test_config.set('block-device', bdevs)
@@ -246,8 +246,8 @@ class SwiftStorageUtilsTests(CharmTestCase):
         determine.return_value = ['/dev/vdb']
         swift_utils.setup_storage()
         self.assertFalse(clean.called)
-        calls = [call(['chown', '-R', 'swift:swift', '/srv/node/']),
-                 call(['chmod', '-R', '0755', '/srv/node/'])]
+        calls = [call(['chown', '-R', 'swift:swift', '/srv/node/vdb']),
+                 call(['chmod', '-R', '0755', '/srv/node/vdb'])]
         self.check_call.assert_has_calls(calls)
         self.mkdir.assert_has_calls([
             call('/srv/node', owner='swift', group='swift',
@@ -274,14 +274,29 @@ class SwiftStorageUtilsTests(CharmTestCase):
         self.fstab_add.assert_called_with('/dev/vdb', '/srv/node/vdb',
                                           'xfs',
                                           options=None)
-        calls = [call(['chown', '-R', 'swift:swift', '/srv/node/']),
-                 call(['chmod', '-R', '0755', '/srv/node/'])]
+        calls = [call(['chown', '-R', 'swift:swift', '/srv/node/vdb']),
+                 call(['chmod', '-R', '0755', '/srv/node/vdb'])]
         self.check_call.assert_has_calls(calls)
         self.mkdir.assert_has_calls([
             call('/srv/node', owner='swift', group='swift',
                  perms=0o755),
             call('/srv/node/vdb', group='swift', owner='swift')
         ])
+
+    @patch.object(swift_utils, 'is_device_in_ring')
+    @patch.object(swift_utils, 'determine_block_devices')
+    def test_setup_storage_no_chmod_existing_devs(self, determine_block_devs,
+                                                  mock_is_device_in_ring):
+        """
+        Verifies that only newly added and formatted storage devices are
+        chmodded and chowned and not the entire /srv/node directory. Doing
+        this will cause unnecessary write updates and for a production cluster,
+        there could potentially be a lot of files to process.
+        """
+        determine_block_devs.return_values = ['/dev/vdb', '/dev/vdc']
+        mock_is_device_in_ring.return_value = True
+        swift_utils.setup_storage()
+        self.assertEquals(self.check_call.call_count, 0)
 
     def _fake_is_device_mounted(self, device):
         if device in ["/dev/sda", "/dev/vda", "/dev/cciss/c0d0"]:
