@@ -92,5 +92,6 @@ class SwiftStorageServerContext(OSContextGenerator):
             'object_max_connections': config('object-max-connections'),
             'object_replicator_concurrency': config(
                 'object-replicator-concurrency'),
+            'object_rsync_timeout': config('object-rsync-timeout'),
         }
         return ctxt

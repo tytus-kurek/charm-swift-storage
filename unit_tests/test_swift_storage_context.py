@@ -90,6 +90,7 @@ class SwiftStorageContextTests(CharmTestCase):
         self.test_config.set('account-max-connections', '10')
         self.test_config.set('container-max-connections', '10')
         self.test_config.set('object-max-connections', '10')
+        self.test_config.set('object-rsync-timeout', '950')
         ctxt = swift_context.SwiftStorageServerContext()
         result = ctxt()
         ex = {
@@ -102,5 +103,6 @@ class SwiftStorageContextTests(CharmTestCase):
             'account_max_connections': '10',
             'container_max_connections': '10',
             'object_max_connections': '10',
+            'object_rsync_timeout': '950',
         }
         self.assertEqual(ex, result)
