@@ -31,20 +31,14 @@ try:
     import netifaces
 except ImportError:
     apt_update(fatal=True)
-    if six.PY2:
-        apt_install('python-netifaces', fatal=True)
-    else:
-        apt_install('python3-netifaces', fatal=True)
+    apt_install('python-netifaces', fatal=True)
     import netifaces
 
 try:
     import netaddr
 except ImportError:
     apt_update(fatal=True)
-    if six.PY2:
-        apt_install('python-netaddr', fatal=True)
-    else:
-        apt_install('python3-netaddr', fatal=True)
+    apt_install('python-netaddr', fatal=True)
     import netaddr
 
 
@@ -420,10 +414,7 @@ def ns_query(address):
     try:
         import dns.resolver
     except ImportError:
-        if six.PY2:
-            apt_install('python-dnspython', fatal=True)
-        else:
-            apt_install('python3-dnspython', fatal=True)
+        apt_install('python-dnspython', fatal=True)
         import dns.resolver
 
     if isinstance(address, dns.name.Name):
@@ -471,10 +462,7 @@ def get_hostname(address, fqdn=True):
         try:
             import dns.reversename
         except ImportError:
-            if six.PY2:
-                apt_install("python-dnspython", fatal=True)
-            else:
-                apt_install("python3-dnspython", fatal=True)
+            apt_install("python-dnspython", fatal=True)
             import dns.reversename
 
         rev = dns.reversename.from_address(address)

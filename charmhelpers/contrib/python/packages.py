@@ -16,7 +16,6 @@
 # limitations under the License.
 
 import os
-import six
 import subprocess
 import sys
 
@@ -40,10 +39,7 @@ def pip_execute(*args, **kwargs):
             from pip import main as _pip_execute
         except ImportError:
             apt_update()
-            if six.PY2:
-                apt_install('python-pip')
-            else:
-                apt_install('python3-pip')
+            apt_install('python-pip')
             from pip import main as _pip_execute
         _pip_execute(*args, **kwargs)
     finally:
@@ -140,10 +136,7 @@ def pip_list():
 
 def pip_create_virtualenv(path=None):
     """Create an isolated Python environment."""
-    if six.PY2:
-        apt_install('python-virtualenv')
-    else:
-        apt_install('python3-virtualenv')
+    apt_install('python-virtualenv')
 
     if path:
         venv_path = path

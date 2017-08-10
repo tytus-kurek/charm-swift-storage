@@ -324,7 +324,7 @@ class SwiftStorageBasicDeployment(OpenStackAmuletDeployment):
             'DEFAULT': {
                 'bind_ip': '0.0.0.0',
                 'bind_port': '6002',
-                'workers': '1'
+                'workers': u.not_null,
             },
             'pipeline:main': {
                 'pipeline': 'recon account-server'
@@ -353,7 +353,7 @@ class SwiftStorageBasicDeployment(OpenStackAmuletDeployment):
             'DEFAULT': {
                 'bind_ip': '0.0.0.0',
                 'bind_port': '6001',
-                'workers': '1'
+                'workers': u.not_null,
             },
             'pipeline:main': {
                 'pipeline': 'recon container-server'
@@ -383,7 +383,7 @@ class SwiftStorageBasicDeployment(OpenStackAmuletDeployment):
             'DEFAULT': {
                 'bind_ip': '0.0.0.0',
                 'bind_port': '6000',
-                'workers': '1'
+                'workers': u.not_null,
             },
             'pipeline:main': {
                 'pipeline': 'recon object-server'

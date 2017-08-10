@@ -28,10 +28,7 @@ try:
     from jinja2 import FileSystemLoader, ChoiceLoader, Environment, exceptions
 except ImportError:
     apt_update(fatal=True)
-    if six.PY2:
-        apt_install('python-jinja2', fatal=True)
-    else:
-        apt_install('python3-jinja2', fatal=True)
+    apt_install('python-jinja2', fatal=True)
     from jinja2 import FileSystemLoader, ChoiceLoader, Environment, exceptions
 
 
@@ -210,10 +207,7 @@ class OSConfigRenderer(object):
             # if this code is running, the object is created pre-install hook.
             # jinja2 shouldn't get touched until the module is reloaded on next
             # hook execution, with proper jinja2 bits successfully imported.
-            if six.PY2:
-                apt_install('python-jinja2')
-            else:
-                apt_install('python3-jinja2')
+            apt_install('python-jinja2')
 
     def register(self, config_file, contexts):
         """
