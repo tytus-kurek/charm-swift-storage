@@ -109,7 +109,7 @@ options:
     default: 900
     type: int
     description: |
-      Max duration of a partition rsync.
+      Max duration of a partition rsync (in seconds).
   nagios-check-params:
     default: "-m -r 60 180 10 20"
     type: string
