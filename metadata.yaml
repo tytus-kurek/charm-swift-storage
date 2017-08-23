@@ -21,7 +21,6 @@ series:
   - xenial
   - zesty
   - trusty
-  - yakkety
 provides:
   nrpe-external-master:
     interface: nrpe-external-master
