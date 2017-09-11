@@ -296,7 +296,7 @@ class SwiftStorageUtilsTests(CharmTestCase):
         determine_block_devs.return_values = ['/dev/vdb', '/dev/vdc']
         mock_is_device_in_ring.return_value = True
         swift_utils.setup_storage()
-        self.assertEquals(self.check_call.call_count, 0)
+        self.assertEqual(self.check_call.call_count, 0)
 
     def _fake_is_device_mounted(self, device):
         if device in ["/dev/sda", "/dev/vda", "/dev/cciss/c0d0"]:
