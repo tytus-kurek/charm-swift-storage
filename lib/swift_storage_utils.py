@@ -364,7 +364,21 @@ def is_device_in_ring(dev, skip_rel_check=False, ignore_deactivated=True):
 
 
 def get_device_blkid(dev):
-    blk_uuid = subprocess.check_output(['blkid', '-s', 'UUID', dev])
+    """Try to get the fs uuid of the provided device.
+
+    If this is called for a new unformatted device we expect blkid to fail
+    hence return None to indicate the device is not in use.
+
+    :param dev: block device path
+    :returns: UUID of device if found else None
+    """
+    try:
+        blk_uuid = subprocess.check_output(['blkid', '-s', 'UUID', dev])
+    except CalledProcessError:
+        # If the device has not be used or formatted yet we expect this to
+        # fail.
+        return None
+
     blk_uuid = re.match(r'^%s:\s+UUID="(.+)"$' % (dev), blk_uuid.strip())
     if blk_uuid:
         return blk_uuid.group(1)
@@ -402,7 +416,7 @@ def remember_devices(devs):
                     level=WARNING)
             else:
                 log("Adding device '%s' with blkid='%s' to devstore" %
-                    (blk_uuid, dev),
+                    (dev, blk_uuid),
                     level=DEBUG)
                 devstore[key] = {'blkid': blk_uuid, 'status': 'active'}
 

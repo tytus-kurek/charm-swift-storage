@@ -447,3 +447,9 @@ class SwiftStorageUtilsTests(CharmTestCase):
         uuid = swift_utils.get_device_blkid(dev)
         self.assertEqual(uuid, "808bc298-0609-4619-aaef-ed7a5ab0ebb7")
         mock_check_output.assert_called_with(cmd)
+
+        def fake_check_output(*args, **kwargs):
+            raise swift_utils.CalledProcessError('a', 'b', 'c')
+
+        mock_check_output.side_effect = fake_check_output
+        self.assertIsNone(swift_utils.get_device_blkid(dev))
