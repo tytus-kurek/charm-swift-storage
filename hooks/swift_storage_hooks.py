@@ -71,7 +71,7 @@ from charmhelpers.contrib.openstack.utils import (
     os_application_version_set,
 )
 from charmhelpers.contrib.network.ip import (
-    get_ipv6_addr
+    get_relation_ip,
 )
 from charmhelpers.contrib.charmsupport import nrpe
 from charmhelpers.contrib.hardening.harden import harden
@@ -156,10 +156,9 @@ def swift_storage_relation_joined(rid=None):
     # Keep a reference of devices we are adding to the ring
     remember_devices(devs)
 
-    if config('prefer-ipv6'):
-        rel_settings['private-address'] = get_ipv6_addr()[0]
+    rel_settings['private-address'] = get_relation_ip('swift-storage')
 
-    relation_set(relation_id=rid, **rel_settings)
+    relation_set(relation_id=rid, relation_settings=rel_settings)
 
 
 @hooks.hook('swift-storage-relation-changed')

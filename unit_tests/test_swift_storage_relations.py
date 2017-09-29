@@ -56,7 +56,7 @@ TO_PATCH = [
     'setup_storage',
     'register_configs',
     'update_nrpe_config',
-    'get_ipv6_addr',
+    'get_relation_ip',
     'status_set',
     'set_os_workload_status',
     'os_application_version_set',
@@ -71,6 +71,7 @@ class SwiftStorageRelationsTests(CharmTestCase):
                                                       TO_PATCH)
         self.config.side_effect = self.test_config.get
         self.relation_get.side_effect = self.test_relation.get
+        self.get_relation_ip.return_value = '10.10.10.2'
 
     def test_prunepath(self):
         hooks.config_changed()
@@ -171,10 +172,18 @@ class SwiftStorageRelationsTests(CharmTestCase):
 
         hooks.swift_storage_relation_joined()
 
+        self.get_relation_ip.assert_called_once_with('swift-storage')
+
         mock_rel_set.assert_called_with(
             relation_id=None,
-            device='vdb', object_port=6000, account_port=6002,
-            zone=1, container_port=6001
+            relation_settings={
+                "device": 'vdb',
+                "object_port": 6000,
+                "account_port": 6002,
+                "zone": 1,
+                "container_port": 6001,
+                "private-address": "10.10.10.2"
+            }
         )
 
         kvstore.get.return_value = None
@@ -202,34 +211,6 @@ class SwiftStorageRelationsTests(CharmTestCase):
     def test_storage_joined_single_device_juju_2(self):
         '''Ensure use of JUJU_MODEL_UUID for Juju >= 2'''
         self._test_storage_joined_single_device(env_key='JUJU_MODEL_UUID')
-
-    @patch('hooks.lib.swift_storage_utils.get_device_blkid',
-           lambda dev: '%s-blkid-uuid' % os.path.basename(dev))
-    @patch.object(hooks.os, 'environ')
-    @patch('hooks.lib.swift_storage_utils.os.path.isdir', lambda *args: True)
-    @patch.object(hooks, 'relation_set')
-    @patch('hooks.lib.swift_storage_utils.relation_ids', lambda *args: [])
-    @patch('hooks.lib.swift_storage_utils.KVStore')
-    @patch.object(uuid, 'uuid4', lambda: 'a-test-uuid')
-    def test_storage_joined_ipv6(self, mock_kvstore, mock_rel_set,
-                                 mock_environ):
-        kvstore = mock_kvstore.return_value
-        kvstore.__enter__.return_value = kvstore
-        kvstore.get.return_value = None
-
-        self.determine_block_devices.return_value = ['/dev/vdb']
-        self.test_config.set('prefer-ipv6', True)
-        self.get_ipv6_addr.return_value = ['2001:db8:1::1']
-
-        hooks.swift_storage_relation_joined()
-        args = {
-            'relation_id': None,
-            'device': 'vdb', 'object_port': 6000,
-            'account_port': 6002, 'zone': 1, 'container_port': 6001,
-            'private-address': '2001:db8:1::1',
-        }
-        mock_rel_set.assert_called_with(**args)
-        kvstore.get.assert_called_with(key='devices')
 
     @patch('hooks.lib.swift_storage_utils.get_device_blkid',
            lambda dev: '%s-blkid-uuid' % os.path.basename(dev))
@@ -272,6 +253,7 @@ class SwiftStorageRelationsTests(CharmTestCase):
         kvstore.set.assert_called_with(
             key='devices', value=json.dumps(devices)
         )
+        self.get_relation_ip.assert_called_once_with('swift-storage')
 
     @patch('hooks.lib.swift_storage_utils.get_device_blkid',
            lambda dev: '%s-blkid-uuid' % os.path.basename(dev))
@@ -316,6 +298,7 @@ class SwiftStorageRelationsTests(CharmTestCase):
         kvstore.set.assert_called_with(
             key='devices', value=json.dumps(devices)
         )
+        self.get_relation_ip.assert_called_once_with('swift-storage')
 
     @patch('sys.exit')
     def test_storage_changed_missing_relation_data(self, exit):
