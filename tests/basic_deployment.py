@@ -95,10 +95,8 @@ class SwiftStorageBasicDeployment(OpenStackAmuletDeployment):
             'overwrite': 'true',
         }
         pxc_config = {
-            'dataset-size': '25%',
+            'innodb-buffer-pool-size': '256M',
             'max-connections': 1000,
-            'root-password': 'ChangeMe123',
-            'sst-password': 'ChangeMe123',
         }
         configs = {
             'keystone': keystone_config,
