@@ -171,3 +171,14 @@ options:
       Sample rate determines what percentage of the metric points a
       client should send to the server.
       Only takes effect if statsd-host is set.
+  allow-ufw-ip6-softfail:
+    description: |
+      When this option is set to True the charm will disable the IPv6
+      support in ufw in case ip6tables couldn't be activated, situations
+      where this could happen is in a LXC container running on top of a
+      host that doesn't have loaded the ip6_tables.
+
+      If this option is False (the default) and ip6_tables module couldn't
+      be loaded, the charm will fail to install.
+    type: boolean
+    default: False

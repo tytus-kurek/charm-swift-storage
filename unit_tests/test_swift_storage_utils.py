@@ -14,6 +14,7 @@
 
 import shutil
 import tempfile
+from collections import namedtuple
 
 from mock import call, patch, MagicMock
 from test_utils import CharmTestCase, patch_open
@@ -45,6 +46,10 @@ TO_PATCH = [
     'fstab_add',
     'mount',
     'is_mapped_loopback_device',
+    'ufw',
+    'iter_units_for_relation_name',
+    'ingress_address',
+    'relation_ids',
 ]
 
 
@@ -453,3 +458,45 @@ class SwiftStorageUtilsTests(CharmTestCase):
 
         mock_check_output.side_effect = fake_check_output
         self.assertIsNone(swift_utils.get_device_blkid(dev))
+
+    def test_grant_access(self):
+        addr = '10.1.1.1'
+        port = '80'
+        self.ufw.grant_access = MagicMock()
+        swift_utils.grant_access(addr, port)
+        self.ufw.grant_access.assert_called_with(addr, port=port, index=1, proto='tcp')
+
+
+    def test_revoke_access(self):
+        addr = '10.1.1.1'
+        port = '80'
+        self.ufw.revoke_access = MagicMock()
+        swift_utils.revoke_access(addr, port)
+        self.ufw.revoke_access.assert_called_with(addr, port=port, proto='tcp')
+
+    @patch.object(swift_utils, 'RsyncContext')
+    @patch.object(swift_utils, 'grant_access')
+    def test_setup_ufw(self, mock_grant_access, mock_rsync):
+        peer_addr_1 = '10.1.1.1'
+        peer_addr_2 = '10.1.1.2'
+        client_addrs = ['10.3.3.1', '10.3.3.2','10.3.3.3']
+        ports = [6660, 6661, 6662]
+        self.test_config.set('object-server-port', ports[0])
+        self.test_config.set('container-server-port', ports[1])
+        self.test_config.set('account-server-port', ports[2])
+        RelatedUnits = namedtuple('RelatedUnits', 'rid, unit')
+        self.iter_units_for_relation_name.return_value = [
+                RelatedUnits(rid='rid:1', unit='unit/1'),
+                RelatedUnits(rid='rid:1', unit='unit/2'),
+                RelatedUnits(rid='rid:1', unit='unit/3')]
+        self.ingress_address.side_effect = client_addrs
+        context_call = MagicMock()
+        context_call.return_value = {'allowed_hosts': '{} {}'
+                                     ''.format(peer_addr_1, peer_addr_2)}
+        mock_rsync.return_value = context_call
+        swift_utils.setup_ufw()
+        calls = []
+        for addr in [peer_addr_1, peer_addr_2] + client_addrs:
+            for port in ports:
+                calls.append(call(addr, port))
+        mock_grant_access.assert_has_calls(calls)

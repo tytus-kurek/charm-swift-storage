@@ -50,7 +50,11 @@ from charmhelpers.core.hookenv import (
     local_unit,
     relation_get,
     relation_ids,
+    iter_units_for_relation_name,
+    ingress_address,
 )
+
+from charmhelpers.contrib.network import ufw
 
 from charmhelpers.contrib.storage.linux.utils import (
     is_block_device,
@@ -118,6 +122,8 @@ RESTART_MAP = {
 
 SWIFT_CONF_DIR = '/etc/swift'
 SWIFT_RING_EXT = 'ring.gz'
+
+FIRST = 1
 
 # NOTE(hopem): we intentionally place this database outside of unit context so
 #              that if the unit, service or even entire environment is
@@ -576,3 +582,53 @@ def assess_status(configs):
                 "Paused. Use 'resume' action to resume normal service.")
     else:
         return ("active", "Unit is ready")
+
+
+def grant_access(address, port):
+    """Grant TCP access to address and port via UFW
+
+    :side effect: calls ufw.grant_access
+    :return: None
+    """
+    log('granting access: {}:{}'.format(address, port), level='DEBUG')
+    ufw.grant_access(address, port=str(port), proto='tcp',
+                     index=FIRST)
+
+
+def revoke_access(address, port):
+    """Revoke TCP access to address and port via UFW
+
+    :side effect: calls ufw.revoke_access
+    :return: None
+    """
+    log('revoking access: {}'.format(address), level='DEBUG')
+    ufw.revoke_access(address, port=port, proto='tcp')
+
+
+def setup_ufw():
+    """Setup UFW firewall to ensure only swift-storage clients and storage
+    peers have access to the swift daemons.
+
+    :side effect: calls several external functions
+    :return: None
+    """
+    ports = [config('object-server-port'),
+             config('container-server-port'),
+             config('account-server-port')]
+
+    # Storage peers
+    allowed_hosts = RsyncContext()().get('allowed_hosts', '').split(' ')
+
+    # Storage clients (swift-proxy)
+    allowed_hosts += [ingress_address(rid=u.rid, unit=u.unit)
+                      for u in iter_units_for_relation_name('swift-storage')]
+
+    # Grant access for peers and clients
+    for host in allowed_hosts:
+        for port in ports:
+            grant_access(host, port)
+
+    # Default deny for storage ports
+    for port in ports:
+        ufw.modify_access(src=None, dst='any', port=port,
+                          proto='tcp', action='reject')

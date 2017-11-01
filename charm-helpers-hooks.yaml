@@ -12,6 +12,7 @@ include:
         - cluster
     - payload.execd
     - contrib.network.ip
+    - contrib.network.ufw
     - contrib.python.packages
     - contrib.charmsupport
     - contrib.hardening|inc=*

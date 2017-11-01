@@ -61,6 +61,9 @@ TO_PATCH = [
     'set_os_workload_status',
     'os_application_version_set',
     'add_to_updatedb_prunepath',
+    'ufw',
+    'setup_ufw',
+    'revoke_access',
 ]
 
 

@@ -628,6 +628,8 @@ class HAProxyContext(OSContextGenerator):
             ctxt['local_host'] = '127.0.0.1'
             ctxt['haproxy_host'] = '0.0.0.0'
 
+        ctxt['ipv6_enabled'] = not is_ipv6_disabled()
+
         ctxt['stat_port'] = '8888'
 
         db = kv()
@@ -802,8 +804,9 @@ class ApacheSSLContext(OSContextGenerator):
         else:
             # Expect cert/key provided in config (currently assumed that ca
             # uses ip for cn)
-            cn = resolve_address(endpoint_type=INTERNAL)
-            self.configure_cert(cn)
+            for net_type in (INTERNAL, ADMIN, PUBLIC):
+                cn = resolve_address(endpoint_type=net_type)
+                self.configure_cert(cn)
 
         addresses = self.get_network_addresses()
         for address, endpoint in addresses:
@@ -1176,7 +1179,7 @@ class SubordinateConfigContext(OSContextGenerator):
                 if sub_config and sub_config != '':
                     try:
                         sub_config = json.loads(sub_config)
-                    except:
+                    except Exception:
                         log('Could not parse JSON from '
                             'subordinate_configuration setting from %s'
                             % rid, level=ERROR)

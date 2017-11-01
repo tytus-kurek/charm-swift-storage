@@ -218,6 +218,8 @@ def principal_unit():
         for rid in relation_ids(reltype):
             for unit in related_units(rid):
                 md = _metadata_unit(unit)
+                if not md:
+                    continue
                 subordinate = md.pop('subordinate', None)
                 if not subordinate:
                     return unit
@@ -511,7 +513,10 @@ def _metadata_unit(unit):
     """
     basedir = os.sep.join(charm_dir().split(os.sep)[:-2])
     unitdir = 'unit-{}'.format(unit.replace(os.sep, '-'))
-    with open(os.path.join(basedir, unitdir, 'charm', 'metadata.yaml')) as md:
+    joineddir = os.path.join(basedir, unitdir, 'charm', 'metadata.yaml')
+    if not os.path.exists(joineddir):
+        return None
+    with open(joineddir) as md:
         return yaml.safe_load(md)
 
 
@@ -665,6 +670,17 @@ def close_ports(start, end, protocol="TCP"):
     _args = ['close-port']
     _args.append('{}-{}/{}'.format(start, end, protocol))
     subprocess.check_call(_args)
+
+
+def opened_ports():
+    """Get the opened ports
+
+    *Note that this will only show ports opened in a previous hook*
+
+    :returns: Opened ports as a list of strings: ``['8080/tcp', '8081-8083/tcp']``
+    """
+    _args = ['opened-ports', '--format=json']
+    return json.loads(subprocess.check_output(_args).decode('UTF-8'))
 
 
 @cached
@@ -1075,6 +1091,24 @@ def network_get_primary_address(binding):
     '''
     cmd = ['network-get', '--primary-address', binding]
     return subprocess.check_output(cmd).decode('UTF-8').strip()
+
+
+@translate_exc(from_exc=OSError, to_exc=NotImplementedError)
+def network_get(endpoint, relation_id=None):
+    """
+    Retrieve the network details for a relation endpoint
+
+    :param endpoint: string. The name of a relation endpoint
+    :param relation_id: int. The ID of the relation for the current context.
+    :return: dict. The loaded YAML output of the network-get query.
+    :raise: NotImplementedError if run on Juju < 2.0
+    """
+    cmd = ['network-get', endpoint, '--format', 'yaml']
+    if relation_id:
+        cmd.append('-r')
+        cmd.append(relation_id)
+    response = subprocess.check_output(cmd).decode('UTF-8').strip()
+    return yaml.safe_load(response)
 
 
 def add_metric(*args, **kwargs):

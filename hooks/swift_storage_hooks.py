@@ -35,6 +35,8 @@ from lib.swift_storage_utils import (
     assess_status,
     ensure_devs_tracked,
     VERSION_PACKAGE,
+    setup_ufw,
+    revoke_access,
 )
 
 from lib.misc_utils import pause_aware_restart_on_change
@@ -48,6 +50,7 @@ from charmhelpers.core.hookenv import (
     relation_set,
     relations_of_type,
     status_set,
+    ingress_address,
 )
 
 from charmhelpers.fetch import (
@@ -73,6 +76,7 @@ from charmhelpers.contrib.openstack.utils import (
 from charmhelpers.contrib.network.ip import (
     get_relation_ip,
 )
+from charmhelpers.contrib.network import ufw
 from charmhelpers.contrib.charmsupport import nrpe
 from charmhelpers.contrib.hardening.harden import harden
 
@@ -85,6 +89,24 @@ SUDOERS_D = '/etc/sudoers.d'
 STORAGE_MOUNT_PATH = '/srv/node'
 
 
+def initialize_ufw():
+    """Initialize the UFW firewall
+
+    Ensure critical ports have explicit allows
+
+    :return: None
+    """
+    # this charm will monitor exclusively the ports used, using 'allow' as
+    # default policy enables sharing the machine with other services
+    ufw.default_policy('allow', 'incoming')
+    # Rsync manages its own ACLs
+    ufw.service('rsync', 'open')
+    # Guarantee SSH access
+    ufw.service('ssh', 'open')
+    # Enable
+    ufw.enable(soft_fail=config('allow-ufw-ip6-softfail'))
+
+
 @hooks.hook('install.real')
 @harden()
 def install():
@@ -94,6 +116,7 @@ def install():
     status_set('maintenance', 'Installing apt packages')
     apt_update()
     apt_install(PACKAGES, fatal=True)
+    initialize_ufw()
     status_set('maintenance', 'Setting up storage')
     setup_storage()
     ensure_swift_directories()
@@ -103,6 +126,7 @@ def install():
 @pause_aware_restart_on_change(RESTART_MAP)
 @harden()
 def config_changed():
+    initialize_ufw()
     if config('prefer-ipv6'):
         status_set('maintenance', 'Configuring ipv6')
         assert_charm_supports_ipv6()
@@ -136,6 +160,7 @@ def config_changed():
 @hooks.hook('upgrade-charm')
 @harden()
 def upgrade_charm():
+    initialize_ufw()
     apt_install(filter_installed_packages(PACKAGES), fatal=True)
     update_nrpe_config()
     ensure_devs_tracked()
@@ -164,6 +189,7 @@ def swift_storage_relation_joined(rid=None):
 @hooks.hook('swift-storage-relation-changed')
 @pause_aware_restart_on_change(RESTART_MAP)
 def swift_storage_relation_changed():
+    setup_ufw()
     rings_url = relation_get('rings_url')
     swift_hash = relation_get('swift_hash')
     if '' in [rings_url, swift_hash] or None in [rings_url, swift_hash]:
@@ -174,6 +200,17 @@ def swift_storage_relation_changed():
     CONFIGS.write('/etc/swift/swift.conf')
 
     fetch_swift_rings(rings_url)
+
+
+@hooks.hook('swift-storage-relation-departed')
+def swift_storage_relation_departed():
+    ports = [config('object-server-port'),
+             config('container-server-port'),
+             config('account-server-port')]
+    removed_client = ingress_address()
+    if removed_client:
+        for port in ports:
+            revoke_access(removed_client, port)
 
 
 @hooks.hook('nrpe-external-master-relation-joined')
