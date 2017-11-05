@@ -104,5 +104,8 @@ class SwiftStorageContextTests(CharmTestCase):
             'container_max_connections': '10',
             'object_max_connections': '10',
             'object_rsync_timeout': '950',
+            'statsd_host': '',
+            'statsd_port': 3125,
+            'statsd_sample_rate': 1.0
         }
         self.assertEqual(ex, result)
