@@ -618,7 +618,7 @@ def save_script_rc(script_path="scripts/scriptrc", **env_vars):
     juju_rc_path = "%s/%s" % (charm_dir(), script_path)
     if not os.path.exists(os.path.dirname(juju_rc_path)):
         os.mkdir(os.path.dirname(juju_rc_path))
-    with open(juju_rc_path, 'wb') as rc_script:
+    with open(juju_rc_path, 'wt') as rc_script:
         rc_script.write(
             "#!/bin/bash\n")
         [rc_script.write('export %s=%s\n' % (u, p))
@@ -797,7 +797,7 @@ def git_default_repos(projects_yaml):
     service = service_name()
     core_project = service
 
-    for default, branch in GIT_DEFAULT_BRANCHES.iteritems():
+    for default, branch in six.iteritems(GIT_DEFAULT_BRANCHES):
         if projects_yaml == default:
 
             # add the requirements repo first
