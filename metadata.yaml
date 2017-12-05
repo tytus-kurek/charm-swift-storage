@@ -19,8 +19,8 @@ tags:
   - file-servers
 series:
   - xenial
+  - bionic
   - artful
-  - zesty
   - trusty
 provides:
   nrpe-external-master:
