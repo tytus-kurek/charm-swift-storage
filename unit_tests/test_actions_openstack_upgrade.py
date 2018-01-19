@@ -50,12 +50,9 @@ class TestSwiftStorageUpgradeActions(CharmTestCase):
     @patch('actions.charmhelpers.contrib.openstack.utils.config')
     @patch('actions.charmhelpers.contrib.openstack.utils.action_set')
     @patch('actions.charmhelpers.contrib.openstack.utils.'
-           'git_install_requested')
-    @patch('actions.charmhelpers.contrib.openstack.utils.'
            'openstack_upgrade_available')
-    def test_openstack_upgrade_true(self, upgrade_avail, git_requested,
+    def test_openstack_upgrade_true(self, upgrade_avail,
                                     action_set, config):
-        git_requested.return_value = False
         upgrade_avail.return_value = True
         config.return_value = True
 
@@ -67,12 +64,9 @@ class TestSwiftStorageUpgradeActions(CharmTestCase):
     @patch('actions.charmhelpers.contrib.openstack.utils.config')
     @patch('actions.charmhelpers.contrib.openstack.utils.action_set')
     @patch('actions.charmhelpers.contrib.openstack.utils.'
-           'git_install_requested')
-    @patch('actions.charmhelpers.contrib.openstack.utils.'
            'openstack_upgrade_available')
-    def test_openstack_upgrade_false(self, upgrade_avail, git_requested,
+    def test_openstack_upgrade_false(self, upgrade_avail,
                                      action_set, config):
-        git_requested.return_value = False
         upgrade_avail.return_value = True
         config.return_value = False
 
