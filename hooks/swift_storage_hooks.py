@@ -99,6 +99,8 @@ def initialize_ufw():
     # this charm will monitor exclusively the ports used, using 'allow' as
     # default policy enables sharing the machine with other services
     ufw.default_policy('allow', 'incoming')
+    ufw.default_policy('allow', 'outgoing')
+    ufw.default_policy('allow', 'routed')
     # Rsync manages its own ACLs
     ufw.service('rsync', 'open')
     # Guarantee SSH access
