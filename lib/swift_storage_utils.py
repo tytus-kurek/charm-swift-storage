@@ -1,7 +1,6 @@
 import json
 import os
 import re
-import socket
 import subprocess
 import shutil
 import tempfile
@@ -135,20 +134,6 @@ FIRST = 1
 #              database.
 # FIXME: add charm support for removing devices (see LP: #1448190)
 KV_DB_PATH = '/var/lib/juju/swift_storage/charm_kvdata.db'
-
-
-def _ensure_ip(value):
-    """Ensure to always return an ip address.
-
-    :param value: IP address or domain
-
-    See LP: #1747516
-    """
-    if not value:
-        return value
-
-    resp = socket.getaddrinfo(value, None)
-    return resp[0][4][0]
 
 
 def ensure_swift_directories():
@@ -635,7 +620,7 @@ def setup_ufw():
     allowed_hosts = RsyncContext()().get('allowed_hosts', '').split(' ')
 
     # Storage clients (swift-proxy)
-    allowed_hosts += [_ensure_ip(ingress_address(rid=u.rid, unit=u.unit))
+    allowed_hosts += [ingress_address(rid=u.rid, unit=u.unit)
                       for u in iter_units_for_relation_name('swift-storage')]
 
     # Grant access for peers and clients
