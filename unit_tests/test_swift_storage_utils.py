@@ -500,10 +500,3 @@ class SwiftStorageUtilsTests(CharmTestCase):
             for port in ports:
                 calls.append(call(addr, port))
         mock_grant_access.assert_has_calls(calls)
-
-    def test_ensure_ip(self):
-        self.assertEqual(swift_utils._ensure_ip('ubuntu.com'), '91.189.94.40')
-        self.assertEqual(swift_utils._ensure_ip('91.189.94.40'),
-                         '91.189.94.40')
-        self.assertEqual(swift_utils._ensure_ip('2001:67c:1560:8001::14'),
-                         '2001:67c:1560:8001::14')
