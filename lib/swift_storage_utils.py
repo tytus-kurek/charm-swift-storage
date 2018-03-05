@@ -55,6 +55,7 @@ from charmhelpers.core.hookenv import (
 )
 
 from charmhelpers.contrib.network import ufw
+from charmhelpers.contrib.network.ip import get_host_ip
 
 from charmhelpers.contrib.storage.linux.utils import (
     is_block_device,
@@ -620,7 +621,7 @@ def setup_ufw():
     allowed_hosts = RsyncContext()().get('allowed_hosts', '').split(' ')
 
     # Storage clients (swift-proxy)
-    allowed_hosts += [ingress_address(rid=u.rid, unit=u.unit)
+    allowed_hosts += [get_host_ip(ingress_address(rid=u.rid, unit=u.unit))
                       for u in iter_units_for_relation_name('swift-storage')]
 
     # Grant access for peers and clients
