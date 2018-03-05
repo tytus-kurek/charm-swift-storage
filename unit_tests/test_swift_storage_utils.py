@@ -479,7 +479,7 @@ class SwiftStorageUtilsTests(CharmTestCase):
     def test_setup_ufw(self, mock_grant_access, mock_rsync):
         peer_addr_1 = '10.1.1.1'
         peer_addr_2 = '10.1.1.2'
-        client_addrs = ['10.3.3.1', '10.3.3.2','10.3.3.3']
+        client_addrs = ['10.3.3.1', '10.3.3.2','10.3.3.3', 'ubuntu.com']
         ports = [6660, 6661, 6662]
         self.test_config.set('object-server-port', ports[0])
         self.test_config.set('container-server-port', ports[1])
@@ -488,7 +488,8 @@ class SwiftStorageUtilsTests(CharmTestCase):
         self.iter_units_for_relation_name.return_value = [
                 RelatedUnits(rid='rid:1', unit='unit/1'),
                 RelatedUnits(rid='rid:1', unit='unit/2'),
-                RelatedUnits(rid='rid:1', unit='unit/3')]
+                RelatedUnits(rid='rid:1', unit='unit/3'),
+                RelatedUnits(rid='rid:1', unit='unit/4')]
         self.ingress_address.side_effect = client_addrs
         context_call = MagicMock()
         context_call.return_value = {'allowed_hosts': '{} {}'
@@ -498,5 +499,8 @@ class SwiftStorageUtilsTests(CharmTestCase):
         calls = []
         for addr in [peer_addr_1, peer_addr_2] + client_addrs:
             for port in ports:
-                calls.append(call(addr, port))
+                if addr == 'ubuntu.com':
+                    calls.append(call('91.189.94.40', port))
+                else:
+                    calls.append(call(addr, port))
         mock_grant_access.assert_has_calls(calls)
