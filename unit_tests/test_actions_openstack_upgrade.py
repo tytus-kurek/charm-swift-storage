@@ -17,7 +17,7 @@ import sys
 
 from mock import patch, MagicMock
 
-os.environ['JUJU_UNIT_NAME'] = 'swift-storge'
+os.environ['JUJU_UNIT_NAME'] = 'swift-storage'
 
 # python-apt is not installed as part of test-requirements but is imported by
 # some charmhelpers modules so create a fake import.
