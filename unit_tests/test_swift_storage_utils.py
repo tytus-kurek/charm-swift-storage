@@ -434,7 +434,7 @@ class SwiftStorageUtilsTests(CharmTestCase):
             '/srv/test.img',
             '/srv/node/test.img',
             'xfs',
-            options='loop, defaults'
+            options='loop,defaults'
         )
 
         self.mkdir.assert_has_calls([

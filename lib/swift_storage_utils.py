@@ -477,7 +477,7 @@ def setup_storage():
 
         if loopback_device:
             dev = loopback_device
-            options = "loop, defaults"
+            options = "loop,defaults"
 
         mountpoint = '/srv/node/%s' % basename
         filesystem = "xfs"
