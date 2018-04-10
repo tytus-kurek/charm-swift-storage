@@ -241,12 +241,13 @@ class SwiftStorageUtilsTests(CharmTestCase):
             ['mkfs.xfs', '-f', '-i', 'size=1024', '/dev/sdb']
         )
 
+    @patch.object(swift_utils.charmhelpers.core.fstab, "Fstab")
     @patch.object(swift_utils, 'is_device_in_ring')
     @patch.object(swift_utils, 'clean_storage')
     @patch.object(swift_utils, 'mkfs_xfs')
     @patch.object(swift_utils, 'determine_block_devices')
     def test_setup_storage_no_overwrite(self, determine, mkfs, clean,
-                                        mock_is_device_in_ring):
+                                        mock_is_device_in_ring, mock_Fstab):
         mock_is_device_in_ring.return_value = False
         determine.return_value = ['/dev/vdb']
         swift_utils.setup_storage()
@@ -417,22 +418,31 @@ class SwiftStorageUtilsTests(CharmTestCase):
         for service in services:
             self.assertIn(call(service), self.service_restart.call_args_list)
 
+    @patch.object(swift_utils.charmhelpers.core.fstab, "Fstab")
     @patch.object(swift_utils, "is_device_in_ring")
     @patch.object(swift_utils, "mkfs_xfs")
     @patch.object(swift_utils, "determine_block_devices")
-    def test_setup_storage_img(self, determine, mkfs, mock_is_device_in_ring):
+    def test_setup_storage_img(self, determine, mkfs, mock_is_device_in_ring,
+                               mock_Fstab):
+
+        class MockFstab(object):
+
+            def get_entry_by_attr(self, x, y):
+                return None
+
+        mock_Fstab.return_value = MockFstab()
         mock_is_device_in_ring.return_value = False
-        determine.return_value = ["/srv/test.img", ]
+        determine.return_value = ["/dev/loop0", ]
         self.is_mapped_loopback_device.return_value = "/srv/test.img"
         swift_utils.setup_storage()
         self.mount.assert_called_with(
-            "/srv/test.img",
-            "/srv/node/test.img",
+            "/dev/loop0",
+            "/srv/node/loop0",
             filesystem="xfs",
         )
         self.fstab_add.assert_called_with(
-            '/srv/test.img',
-            '/srv/node/test.img',
+            '/dev/loop0',
+            '/srv/node/loop0',
             'xfs',
             options='loop,defaults'
         )
@@ -440,7 +450,49 @@ class SwiftStorageUtilsTests(CharmTestCase):
         self.mkdir.assert_has_calls([
             call('/srv/node', owner='swift', group='swift',
                  perms=0o755),
-            call('/srv/node/test.img', group='swift', owner='swift')
+            call('/srv/node/loop0', group='swift', owner='swift')
+        ])
+
+    @patch.object(swift_utils.charmhelpers.core.fstab, "Fstab")
+    @patch.object(swift_utils, "is_device_in_ring")
+    @patch.object(swift_utils, "mkfs_xfs")
+    @patch.object(swift_utils, "determine_block_devices")
+    def test_setup_storage_img_reuse_fstab_entry(self, determine, mkfs,
+                                                 mock_is_device_in_ring,
+                                                 mock_Fstab):
+
+        FstabEntry = namedtuple('FstabEntry', ['mountpoint', 'device'])
+        class MockFstab(object):
+
+            def __init__(self):
+                self.device = '/srv/test.img'
+
+            def get_entry_by_attr(self, x, y):
+                return FstabEntry(
+                    mountpoint='/srv/node/test.img',
+                    device='/srv/test.img')
+
+        mock_Fstab.return_value = MockFstab()
+        mock_is_device_in_ring.return_value = False
+        determine.return_value = ["/dev/loop0", ]
+        self.is_mapped_loopback_device.return_value = "/srv/test.img"
+        swift_utils.setup_storage()
+        self.mount.assert_called_with(
+            "/srv/test.img",
+            "/srv/node/loop0",
+            filesystem="xfs",
+        )
+        self.fstab_add.assert_called_with(
+            '/srv/test.img',
+            '/srv/node/loop0',
+            'xfs',
+            options='loop,defaults'
+        )
+
+        self.mkdir.assert_has_calls([
+            call('/srv/node', owner='swift', group='swift',
+                 perms=0o755),
+            call('/srv/node/loop0', group='swift', owner='swift')
         ])
 
     @patch.object(swift_utils.subprocess, "check_output")

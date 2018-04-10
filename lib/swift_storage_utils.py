@@ -30,6 +30,8 @@ from charmhelpers.core.unitdata import (
     Storage as KVStore,
 )
 
+import charmhelpers.core.fstab
+
 from charmhelpers.core.host import (
     mkdir,
     mount,
@@ -474,12 +476,18 @@ def setup_storage():
 
         options = None
         loopback_device = is_mapped_loopback_device(dev)
-
+        mountpoint = '/srv/node/%s' % basename
         if loopback_device:
-            dev = loopback_device
+            # If an exiting fstab entry exists using the image file as the
+            # source then preserve it, otherwise use the loopback device
+            # directly to avoid a secound implicit loopback device being
+            # created on mount. Bug #1762390
+            fstab = charmhelpers.core.fstab.Fstab()
+            fstab_entry = fstab.get_entry_by_attr('mountpoint', mountpoint)
+            if fstab_entry and loopback_device == fstab_entry.device:
+                dev = loopback_device
             options = "loop,defaults"
 
-        mountpoint = '/srv/node/%s' % basename
         filesystem = "xfs"
 
         mount(dev, mountpoint, filesystem=filesystem)
