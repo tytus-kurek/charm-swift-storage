@@ -255,7 +255,7 @@ class CheckSwiftStorageTestCase(unittest.TestCase):
                 '"start": 1493299546.621624, "hashmatch": 0, "diff": 0, ' \
                 '"empty": 0}, "replication_time": 0.0076580047607421875}'
         pmock_jdata = PropertyMock(return_value=jdata)
-        mock_timestamp.return_value = (MagicMock(seconds=12), 0)
+        mock_timestamp.return_value = (MagicMock(days=0, seconds=12), 0)
         with patch('urllib2.urlopen') as mock_urlopen:
             mock_urlopen.return_value = MagicMock(read=pmock_jdata)
             result = check_replication(base_url, [4, 10, 4, 10])
@@ -278,7 +278,7 @@ class CheckSwiftStorageTestCase(unittest.TestCase):
                 '"start": 1493299546.621624, "hashmatch": 0, "diff": 0, ' \
                 '"empty": 0}, "replication_time": 0.0076580047607421875}'
         pmock_jdata = PropertyMock(return_value=jdata)
-        mock_timestamp.return_value = (MagicMock(seconds=0), 12)
+        mock_timestamp.return_value = (MagicMock(days=0, seconds=0), 12)
         with patch('urllib2.urlopen') as mock_urlopen:
             mock_urlopen.return_value = MagicMock(read=pmock_jdata)
             result = check_replication(base_url, [4, 10, 4, 10])
@@ -298,7 +298,7 @@ class CheckSwiftStorageTestCase(unittest.TestCase):
                 '"start": 1493299546.621624, "hashmatch": 0, "diff": 0, ' \
                 '"empty": 0}, "replication_time": 0.0076580047607421875}'
         pmock_jdata = PropertyMock(return_value=jdata)
-        mock_timestamp.return_value = (MagicMock(seconds=0), -1)
+        mock_timestamp.return_value = (MagicMock(days=0, seconds=0), -1)
         with patch('urllib2.urlopen') as mock_urlopen:
             mock_urlopen.return_value = MagicMock(read=pmock_jdata)
             result = check_replication(base_url, [4, 10, 4, 10])
@@ -320,7 +320,7 @@ class CheckSwiftStorageTestCase(unittest.TestCase):
                 '"start": 1493299546.621624, "hashmatch": 0, "diff": 0, ' \
                 '"empty": 0}, "replication_time": 0.0076580047607421875}'
         pmock_jdata = PropertyMock(return_value=jdata)
-        mock_timestamp.return_value = (MagicMock(seconds=5), 0)
+        mock_timestamp.return_value = (MagicMock(days=0, seconds=5), 0)
         with patch('urllib2.urlopen') as mock_urlopen:
             mock_urlopen.return_value = MagicMock(read=pmock_jdata)
             result = check_replication(base_url, [4, 10, 4, 10])
@@ -328,6 +328,29 @@ class CheckSwiftStorageTestCase(unittest.TestCase):
                              [(STATUS_WARN,
                                "'{}' replication lag is "
                                "5 seconds".format(repl))
+                              for repl in ('account', 'object', 'container')])
+
+    @patch('check_swift_storage.repl_last_timestamp')
+    def test_check_replication_crit_day_plus_lag(self, mock_timestamp):
+        """
+        Replication lag CRITS with day wrap, STATUS_CRIT
+        """
+        base_url = 'http://localhost:6000/recon/'
+        jdata = '{"replication_last": 1493299546.629282, ' \
+                '"replication_stats": {"no_change": 0, "rsync": 0, ' \
+                '"success": 0, "failure": 0, "attempted": 0, "ts_repl": 0, ' \
+                '"remove": 0, "remote_merge": 0, "diff_capped": 0, ' \
+                '"start": 1493299546.621624, "hashmatch": 0, "diff": 0, ' \
+                '"empty": 0}, "replication_time": 0.0076580047607421875}'
+        pmock_jdata = PropertyMock(return_value=jdata)
+        mock_timestamp.return_value = (MagicMock(days=2, seconds=5), 0)
+        with patch('urllib2.urlopen') as mock_urlopen:
+            mock_urlopen.return_value = MagicMock(read=pmock_jdata)
+            result = check_replication(base_url, [4, 10, 4, 10])
+            self.assertEqual(result,
+                             [(STATUS_CRIT,
+                               "'{}' replication lag is "
+                               "172805 seconds".format(repl))
                               for repl in ('account', 'object', 'container')])
 
     @patch('check_swift_storage.repl_last_timestamp')
@@ -343,7 +366,7 @@ class CheckSwiftStorageTestCase(unittest.TestCase):
                 '"start": 1493299546.621624, "hashmatch": 0, "diff": 0, ' \
                 '"empty": 0}, "replication_time": 0.0076580047607421875}'
         pmock_jdata = PropertyMock(return_value=jdata)
-        mock_timestamp.return_value = (MagicMock(seconds=0), 5)
+        mock_timestamp.return_value = (MagicMock(days=0, seconds=0), 5)
         with patch('urllib2.urlopen') as mock_urlopen:
             mock_urlopen.return_value = MagicMock(read=pmock_jdata)
             result = check_replication(base_url, [4, 10, 4, 10])
@@ -364,7 +387,7 @@ class CheckSwiftStorageTestCase(unittest.TestCase):
                 '"start": 1493299546.621624, "hashmatch": 0, "diff": 0, ' \
                 '"empty": 0}, "replication_time": 0.0076580047607421875}'
         pmock_jdata = PropertyMock(return_value=jdata)
-        mock_timestamp.return_value = (MagicMock(seconds=0), 0)
+        mock_timestamp.return_value = (MagicMock(days=0, seconds=0), 0)
         with patch('urllib2.urlopen') as mock_urlopen:
             mock_urlopen.return_value = MagicMock(read=pmock_jdata)
             result = check_replication(base_url, [4, 10, 4, 10])
