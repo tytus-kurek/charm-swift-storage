@@ -28,3 +28,12 @@ provides:
     scope: container
   swift-storage:
     interface: swift
+requires:
+  secrets-storage:
+    interface: vault-kv
+storage:
+  block-devices:
+    type: block
+    multiple:
+      range: 0-
+    minimum-size: 1G

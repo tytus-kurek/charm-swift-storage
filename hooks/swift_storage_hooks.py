@@ -14,16 +14,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import base64
+import copy
+import json
 import os
 import shutil
 import sys
+import socket
+import subprocess
 import tempfile
 
 from lib.swift_storage_utils import (
     PACKAGES,
     RESTART_MAP,
     SWIFT_SVCS,
-    determine_block_devices,
     do_openstack_upgrade,
     ensure_swift_directories,
     fetch_swift_rings,
@@ -53,16 +57,20 @@ from charmhelpers.core.hookenv import (
     relations_of_type,
     status_set,
     ingress_address,
+    DEBUG,
 )
 
 from charmhelpers.fetch import (
     apt_install,
     apt_update,
+    add_source,
     filter_installed_packages
 )
 from charmhelpers.core.host import (
     add_to_updatedb_prunepath,
     rsync,
+    write_file,
+    umount,
 )
 
 from charmhelpers.core.sysctl import create as create_sysctl
@@ -81,8 +89,11 @@ from charmhelpers.contrib.network.ip import (
 from charmhelpers.contrib.network import ufw
 from charmhelpers.contrib.charmsupport import nrpe
 from charmhelpers.contrib.hardening.harden import harden
+from charmhelpers.core.unitdata import kv
 
 from distutils.dir_util import mkpath
+
+import charmhelpers.contrib.openstack.vaultlocker as vaultlocker
 
 hooks = Hooks()
 CONFIGS = register_configs()
@@ -173,8 +184,6 @@ def install():
     apt_update()
     apt_install(PACKAGES, fatal=True)
     initialize_ufw()
-    status_set('maintenance', 'Setting up storage')
-    setup_storage()
     ensure_swift_directories()
 
 
@@ -186,6 +195,10 @@ def config_changed():
         initialize_ufw()
     else:
         ufw.disable()
+
+    if config('ephemeral-unmount'):
+        umount(config('ephemeral-unmount'), persist=True)
+
     if config('prefer-ipv6'):
         status_set('maintenance', 'Configuring ipv6')
         assert_charm_supports_ipv6()
@@ -198,10 +211,9 @@ def config_changed():
         status_set('maintenance', 'Running openstack upgrade')
         do_openstack_upgrade(configs=CONFIGS)
 
-    setup_storage()
+    install_vaultlocker()
 
-    for rid in relation_ids('swift-storage'):
-        swift_storage_relation_joined(rid=rid)
+    configure_storage()
 
     CONFIGS.write_all()
 
@@ -216,6 +228,17 @@ def config_changed():
     add_to_updatedb_prunepath(STORAGE_MOUNT_PATH)
 
 
+def install_vaultlocker():
+    """Determine whether vaultlocker is required and install"""
+    if config('encrypt'):
+        pkgs = ['vaultlocker', 'python-hvac']
+        installed = len(filter_installed_packages(pkgs)) == 0
+        if not installed:
+            add_source('ppa:openstack-charmers/vaultlocker')
+            apt_update(fatal=True)
+            apt_install(pkgs, fatal=True)
+
+
 @hooks.hook('upgrade-charm')
 @harden()
 def upgrade_charm():
@@ -227,6 +250,10 @@ def upgrade_charm():
 
 @hooks.hook()
 def swift_storage_relation_joined(rid=None):
+    if config('encrypt') and not vaultlocker.vault_relation_complete():
+        log('Encryption configured and vault not ready, deferring',
+            level=DEBUG)
+        return
     rel_settings = {
         'zone': config('zone'),
         'object_port': config('object-server-port'),
@@ -234,7 +261,8 @@ def swift_storage_relation_joined(rid=None):
         'account_port': config('account-server-port'),
     }
 
-    devs = determine_block_devices() or []
+    db = kv()
+    devs = db.get('prepared-devices', [])
     devs = [os.path.basename(d) for d in devs]
     rel_settings['device'] = ':'.join(devs)
     # Keep a reference of devices we are adding to the ring
@@ -270,6 +298,34 @@ def swift_storage_relation_departed():
     if removed_client:
         for port in ports:
             revoke_access(removed_client, port)
+
+
+@hooks.hook('secrets-storage-relation-joined')
+def secrets_storage_joined(relation_id=None):
+    relation_set(relation_id=relation_id,
+                 secret_backend='charm-vaultlocker',
+                 isolated=True,
+                 access_address=get_relation_ip('secrets-storage'),
+                 hostname=socket.gethostname())
+
+
+@hooks.hook('secrets-storage-relation-changed')
+def secrets_storage_changed():
+    vault_ca = relation_get('vault_ca')
+    if vault_ca:
+        vault_ca = base64.decodestring(json.loads(vault_ca).encode())
+        write_file('/usr/local/share/ca-certificates/vault-ca.crt',
+                   vault_ca, perms=0o644)
+        subprocess.check_call(['update-ca-certificates', '--fresh'])
+    configure_storage()
+
+
+@hooks.hook('storage.real')
+def configure_storage():
+    setup_storage(config('encrypt'))
+
+    for rid in relation_ids('swift-storage'):
+        swift_storage_relation_joined(rid=rid)
 
 
 @hooks.hook('nrpe-external-master-relation-joined')
@@ -318,7 +374,10 @@ def main():
         hooks.execute(sys.argv)
     except UnregisteredHookError as e:
         log('Unknown hook {} - skipping.'.format(e))
-    set_os_workload_status(CONFIGS, REQUIRED_INTERFACES,
+    required_interfaces = copy.deepcopy(REQUIRED_INTERFACES)
+    if config('encrypt'):
+        required_interfaces['vault'] = ['secrets-storage']
+    set_os_workload_status(CONFIGS, required_interfaces,
                            charm_func=assess_status)
     os_application_version_set(VERSION_PACKAGE)
 

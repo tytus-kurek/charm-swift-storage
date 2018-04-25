@@ -4,6 +4,7 @@ import re
 import subprocess
 import shutil
 import tempfile
+import uuid
 
 from subprocess import check_call, call, CalledProcessError, check_output
 
@@ -54,6 +55,8 @@ from charmhelpers.core.hookenv import (
     relation_ids,
     iter_units_for_relation_name,
     ingress_address,
+    storage_list,
+    storage_get,
 )
 
 from charmhelpers.contrib.network import ufw
@@ -62,6 +65,7 @@ from charmhelpers.contrib.network.ip import get_host_ip
 from charmhelpers.contrib.storage.linux.utils import (
     is_block_device,
     is_device_mounted,
+    mkfs_xfs,
 )
 
 from charmhelpers.contrib.storage.linux.loopback import (
@@ -83,6 +87,10 @@ from charmhelpers.contrib.openstack import (
 from charmhelpers.core.decorators import (
     retry_on_exception,
 )
+
+import charmhelpers.contrib.openstack.vaultlocker as vaultlocker
+
+from charmhelpers.core.unitdata import kv
 
 PACKAGES = [
     'swift', 'swift-account', 'swift-container', 'swift-object',
@@ -162,11 +170,14 @@ def register_configs():
                      [SwiftStorageContext()])
     configs.register('/etc/rsync-juju.d/050-swift-storage.conf',
                      [RsyncContext(), SwiftStorageServerContext()])
+    # NOTE: add VaultKVContext so interface status can be assessed
     for server in ['account', 'object', 'container']:
         configs.register('/etc/swift/%s-server.conf' % server,
                          [SwiftStorageServerContext(),
                           context.BindHostContext(),
-                          context.WorkerConfigContext()]),
+                          context.WorkerConfigContext(),
+                          vaultlocker.VaultKVContext(
+                              vaultlocker.VAULTLOCKER_BACKEND)]),
     return configs
 
 
@@ -269,6 +280,12 @@ def determine_block_devices():
     else:
         bdevs = block_device.split(' ')
 
+    # List storage instances for the 'block-devices'
+    # store declared for this charm too, and add
+    # their block device paths to the list.
+    storage_ids = storage_list('block-devices')
+    bdevs.extend((storage_get('location', s) for s in storage_ids))
+
     bdevs = list(set(bdevs))
     # attempt to ensure block devices, but filter out missing devs
     _none = ['None', 'none']
@@ -277,19 +294,6 @@ def determine_block_devices():
          _none]
     log('Valid ensured block devices: %s' % valid_bdevs)
     return valid_bdevs
-
-
-def mkfs_xfs(bdev, force=False):
-    """Format device with XFS filesystem.
-
-    By default this should fail if the device already has a filesystem on it.
-    """
-    cmd = ['mkfs.xfs']
-    if force:
-        cmd.append("-f")
-
-    cmd += ['-i', 'size=1024', bdev]
-    check_call(cmd)
 
 
 def devstore_safe_load(devstore):
@@ -446,20 +450,72 @@ def ensure_devs_tracked():
                 is_device_in_ring(dev, skip_rel_check=True)
 
 
-def setup_storage():
+def setup_storage(encrypt=False):
+    # Preflight check vault relation if encryption is enabled
+    vault_kv = vaultlocker.VaultKVContext(vaultlocker.VAULTLOCKER_BACKEND)
+    context = vault_kv()
+    if encrypt and not vault_kv.complete:
+        log("Encryption requested but vault relation not complete",
+            level=DEBUG)
+        return
+    elif encrypt and vault_kv.complete:
+        # NOTE: only write vaultlocker configuration once relation is complete
+        #       otherwise we run the chance of an empty configuration file
+        #       being installed on a machine with other vaultlocker based
+        #       services
+        vaultlocker.write_vaultlocker_conf(context, priority=90)
+
     # Ensure /srv/node exists just in case no disks
     # are detected and used.
     mkdir(os.path.join('/srv', 'node'),
           owner='swift', group='swift',
           perms=0o755)
     reformat = str(config('overwrite')).lower() == "true"
+
+    db = kv()
+    prepared_devices = db.get('prepared-devices', [])
+
     for dev in determine_block_devices():
+        if dev in prepared_devices:
+            log('Device {} already processed by charm,'
+                ' skipping'.format(dev))
+            continue
+
         if is_device_in_ring(os.path.basename(dev)):
             log("Device '%s' already in the ring - ignoring" % (dev))
+            # NOTE: record existing use of device dealing with
+            #       upgrades from older versions of charms without
+            #       this feature
+            prepared_devices.append(dev)
+            db.set('prepared-devices', prepared_devices)
+            db.flush()
+            continue
+
+        # NOTE: this deals with a dm-crypt'ed block device already in
+        #       use
+        if is_device_mounted(dev):
+            log("Device '{}' is already mounted, ignoring".format(dev))
             continue
 
         if reformat:
             clean_storage(dev)
+
+        loopback_device = is_mapped_loopback_device(dev)
+        options = None
+
+        if encrypt and not loopback_device:
+            dev_uuid = str(uuid.uuid4())
+            check_call(['vaultlocker', 'encrypt',
+                        '--uuid', dev_uuid,
+                        dev])
+            dev = '/dev/mapper/crypt-{}'.format(dev_uuid)
+            options = ','.join([
+                "defaults",
+                "nofail",
+                ("x-systemd.requires="
+                 "vaultlocker-decrypt@{uuid}.service".format(uuid=dev_uuid)),
+                "comment=vaultlocker",
+            ])
 
         try:
             # If not cleaned and in use, mkfs should fail.
@@ -475,8 +531,6 @@ def setup_storage():
         _mp = os.path.join('/srv', 'node', basename)
         mkdir(_mp, owner='swift', group='swift')
 
-        options = None
-        loopback_device = is_mapped_loopback_device(dev)
         mountpoint = '/srv/node/%s' % basename
         if loopback_device:
             # If an exiting fstab entry exists using the image file as the
@@ -496,6 +550,12 @@ def setup_storage():
 
         check_call(['chown', '-R', 'swift:swift', mountpoint])
         check_call(['chmod', '-R', '0755', mountpoint])
+
+        # NOTE: record preparation of device - this will be used when
+        #       providing block device configuration for ring builders.
+        prepared_devices.append(dev)
+        db.set('prepared-devices', prepared_devices)
+        db.flush()
 
 
 @retry_on_exception(3, base_delay=2, exc_type=CalledProcessError)

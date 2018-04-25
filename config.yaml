@@ -40,6 +40,17 @@ options:
     description: |
       If true, charm will attempt to unmount and overwrite existing and in-use
       block-devices (WARNING).
+  ephemeral-unmount:
+    type: string
+    default:
+    description: |
+      Cloud instances provide ephermeral storage which is normally mounted
+      on /mnt.
+      .
+      Setting this option to the path of the ephemeral mountpoint will force
+      an unmount of the corresponding device so that it can be used as a swift
+      storage device. This is useful for testing purposes (cloud deployment
+      is not a typical use case).
   zone:
     default: 1
     type: int
@@ -189,3 +200,9 @@ options:
       be loaded, the charm will fail to install.
     type: boolean
     default: False
+  encrypt:
+    default: false
+    type: boolean
+    description: |
+      Encrypt block devices used by swift using dm-crypt, making use of
+      vault for encryption key management; requires a relation to vault.
