@@ -16,6 +16,7 @@ from mock import patch
 import os
 import json
 import uuid
+import tempfile
 
 from test_utils import CharmTestCase, patch_open
 
@@ -53,6 +54,7 @@ TO_PATCH = [
     'fetch_swift_rings',
     'save_script_rc',
     'setup_rsync',
+    'rsync',
     'setup_storage',
     'register_configs',
     'update_nrpe_config',
@@ -67,6 +69,22 @@ TO_PATCH = [
 ]
 
 
+UFW_DUMMY_RULES = """
+# Don't delete these required lines, otherwise there will be errors
+*filter
+:ufw-before-input - [0:0]
+:ufw-before-output - [0:0]
+:ufw-before-forward - [0:0]
+:ufw-not-local - [0:0]
+# End required lines
+
+
+# allow all on loopback
+-A ufw-before-input -i lo -j ACCEPT
+-A ufw-before-output -o lo -j ACCEPT
+"""
+
+
 class SwiftStorageRelationsTests(CharmTestCase):
 
     def setUp(self):
@@ -76,10 +94,12 @@ class SwiftStorageRelationsTests(CharmTestCase):
         self.relation_get.side_effect = self.test_relation.get
         self.get_relation_ip.return_value = '10.10.10.2'
 
+    @patch.object(hooks, 'add_ufw_gre_rule', lambda *args: None)
     def test_prunepath(self):
         hooks.config_changed()
         self.add_to_updatedb_prunepath.assert_called_with("/srv/node")
 
+    @patch.object(hooks, 'add_ufw_gre_rule', lambda *args: None)
     def test_install_hook(self):
         self.test_config.set('openstack-origin', 'cloud:precise-havana')
         hooks.install()
@@ -92,6 +112,7 @@ class SwiftStorageRelationsTests(CharmTestCase):
         self.assertTrue(self.setup_storage.called)
         self.assertTrue(self.execd_preinstall.called)
 
+    @patch.object(hooks, 'add_ufw_gre_rule', lambda *args: None)
     def test_config_changed_no_upgrade_available(self):
         self.openstack_upgrade_available.return_value = False
         self.relations_of_type.return_value = False
@@ -102,6 +123,7 @@ class SwiftStorageRelationsTests(CharmTestCase):
         self.assertTrue(self.CONFIGS.write_all.called)
         self.assertTrue(self.setup_rsync.called)
 
+    @patch.object(hooks, 'add_ufw_gre_rule', lambda *args: None)
     def test_config_changed_upgrade_available(self):
         self.openstack_upgrade_available.return_value = True
         self.relations_of_type.return_value = False
@@ -111,6 +133,7 @@ class SwiftStorageRelationsTests(CharmTestCase):
         self.assertTrue(self.do_openstack_upgrade.called)
         self.assertTrue(self.CONFIGS.write_all.called)
 
+    @patch.object(hooks, 'add_ufw_gre_rule', lambda *args: None)
     def test_config_changed_with_openstack_upgrade_action(self):
         self.openstack_upgrade_available.return_value = True
         self.test_config.set('action-managed-upgrade', True)
@@ -121,6 +144,7 @@ class SwiftStorageRelationsTests(CharmTestCase):
 
         self.assertFalse(self.do_openstack_upgrade.called)
 
+    @patch.object(hooks, 'add_ufw_gre_rule', lambda *args: None)
     def test_config_changed_nrpe_master(self):
         self.openstack_upgrade_available.return_value = False
         self.relations_of_type.return_value = True
@@ -131,6 +155,7 @@ class SwiftStorageRelationsTests(CharmTestCase):
         self.assertTrue(self.setup_rsync.called)
         self.assertTrue(self.update_nrpe_config.called)
 
+    @patch.object(hooks, 'add_ufw_gre_rule', lambda *args: None)
     @patch.object(hooks, 'assert_charm_supports_ipv6')
     def test_config_changed_ipv6(self, mock_assert_charm_supports_ipv6):
         self.test_config.set('prefer-ipv6', True)
@@ -142,6 +167,7 @@ class SwiftStorageRelationsTests(CharmTestCase):
         self.assertTrue(self.CONFIGS.write_all.called)
         self.assertTrue(self.setup_rsync.called)
 
+    @patch.object(hooks, 'add_ufw_gre_rule', lambda *args: None)
     @patch.object(hooks, 'ensure_devs_tracked')
     def test_upgrade_charm(self, mock_ensure_devs_tracked):
         self.filter_installed_packages.return_value = [
@@ -323,3 +349,9 @@ class SwiftStorageRelationsTests(CharmTestCase):
     def test_main_hook_missing(self, _argv):
         hooks.main()
         self.assertTrue(self.log.called)
+
+    def test_add_ufw_gre_rule(self):
+        with tempfile.NamedTemporaryFile() as tmpfile:
+            tmpfile.file.write(UFW_DUMMY_RULES)
+            tmpfile.file.close()
+            hooks.add_ufw_gre_rule(tmpfile.name)

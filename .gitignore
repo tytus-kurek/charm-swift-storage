@@ -6,3 +6,5 @@ bin
 tags
 *.sw[nop]
 *.pyc
+tests/cirros-*
+func-results.json

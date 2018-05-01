@@ -87,6 +87,7 @@ from charmhelpers.core.decorators import (
 PACKAGES = [
     'swift', 'swift-account', 'swift-container', 'swift-object',
     'xfsprogs', 'gdisk', 'lvm2', 'python-jinja2', 'python-psutil',
+    'ufw',
 ]
 
 VERSION_PACKAGE = 'swift-account'
@@ -621,6 +622,11 @@ def setup_ufw():
     :side effect: calls several external functions
     :return: None
     """
+
+    if not config('enable-firewall'):
+        log("Firewall has been administratively disabled", "DEBUG")
+        return
+
     ports = [config('object-server-port'),
              config('container-server-port'),
              config('account-server-port')]

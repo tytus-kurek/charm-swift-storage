@@ -171,6 +171,13 @@ options:
       Sample rate determines what percentage of the metric points a
       client should send to the server.
       Only takes effect if statsd-host is set.
+  enable-firewall:
+    type: boolean
+    default: True
+    description: |
+      By default the swift-storage charm will use the UFW firewall to
+      protect storage daemons. This option allows the administrator to
+      disable this feature.
   allow-ufw-ip6-softfail:
     description: |
       When this option is set to True the charm will disable the IPv6

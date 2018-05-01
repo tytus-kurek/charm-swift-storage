@@ -15,7 +15,9 @@
 # limitations under the License.
 
 import os
+import shutil
 import sys
+import tempfile
 
 from lib.swift_storage_utils import (
     PACKAGES,
@@ -87,6 +89,49 @@ CONFIGS = register_configs()
 NAGIOS_PLUGINS = '/usr/local/lib/nagios/plugins'
 SUDOERS_D = '/etc/sudoers.d'
 STORAGE_MOUNT_PATH = '/srv/node'
+UFW_DIR = '/etc/ufw'
+
+
+def add_ufw_gre_rule(ufw_rules_path):
+    """Add allow gre rule to UFW
+
+    Make a copy of existing UFW before rules, insert our new rule and replace
+    existing rules with updated version.
+    """
+    rule = '-A ufw-before-input -p 47 -j ACCEPT'
+    rule_exists = False
+    with tempfile.NamedTemporaryFile() as tmpfile:
+        # Close pre-opened file so that we can replace it with a copy of our
+        # config file.
+        tmpfile.file.close()
+        dst = tmpfile.name
+        # Copy over ufw rules file
+        shutil.copyfile(ufw_rules_path, dst)
+        with open(dst, 'r') as fd:
+            lines = fd.readlines()
+
+        # Check whether the line we are adding already exists
+        for line in lines:
+            if rule in line:
+                rule_exists = True
+                break
+
+        added = False
+        if not rule_exists:
+            # Insert our rule as the first rule.
+            with open(dst, 'w') as fd:
+                for line in lines:
+                    if not added and line.startswith('-A'):
+                        fd.write('# Allow GRE Traffic (added by swift-storage '
+                                 'charm)\n')
+                        fd.write('{}\n'.format(rule))
+                        fd.write(line)
+                        added = True
+                    else:
+                        fd.write(line)
+
+            # Replace existing config with updated one.
+            shutil.copyfile(dst, ufw_rules_path)
 
 
 def initialize_ufw():
@@ -96,6 +141,11 @@ def initialize_ufw():
 
     :return: None
     """
+
+    if not config('enable-firewall'):
+        log("Firewall has been administratively disabled", "DEBUG")
+        return
+
     # this charm will monitor exclusively the ports used, using 'allow' as
     # default policy enables sharing the machine with other services
     ufw.default_policy('allow', 'incoming')
@@ -107,6 +157,10 @@ def initialize_ufw():
     ufw.service('ssh', 'open')
     # Enable
     ufw.enable(soft_fail=config('allow-ufw-ip6-softfail'))
+
+    # Allow GRE traffic
+    add_ufw_gre_rule(os.path.join(UFW_DIR, 'before.rules'))
+    ufw.reload()
 
 
 @hooks.hook('install.real')
@@ -128,7 +182,10 @@ def install():
 @pause_aware_restart_on_change(RESTART_MAP)
 @harden()
 def config_changed():
-    initialize_ufw()
+    if config('enable-firewall'):
+        initialize_ufw()
+    else:
+        ufw.disable()
     if config('prefer-ipv6'):
         status_set('maintenance', 'Configuring ipv6')
         assert_charm_supports_ipv6()
