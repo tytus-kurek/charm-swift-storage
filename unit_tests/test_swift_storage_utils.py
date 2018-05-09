@@ -146,7 +146,7 @@ class SwiftStorageUtilsTests(CharmTestCase):
 
     def test_determine_block_device_no_config(self):
         self.test_config.set('block-device', None)
-        self.assertEqual(swift_utils.determine_block_devices(), None)
+        self.assertIsNone(swift_utils.determine_block_devices())
 
     def _fake_ensure(self, bdev):
         # /dev/vdz is a missing dev
