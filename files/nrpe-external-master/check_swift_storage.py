@@ -111,14 +111,17 @@ def check_replication(base_url, limits):
             results.append((STATUS_CRIT,
                             "'{}' replication lag not working "
                             '(perms issue? check syslog)'.format(repl)))
-        elif delta.seconds >= limits[1]:
-            results.append((STATUS_CRIT,
-                            "'{}' replication lag is {} "
-                            "seconds".format(repl, delta.seconds)))
-        elif delta.seconds >= limits[0]:
-            results.append((STATUS_WARN,
-                            "'{}' replication lag is {} "
-                            "seconds".format(repl, delta.seconds)))
+        else:
+            seconds_since_repl = delta.days * 86400
+            seconds_since_repl += delta.seconds
+            if seconds_since_repl >= limits[1]:
+                results.append((STATUS_CRIT,
+                                "'{}' replication lag is {} "
+                                "seconds".format(repl, seconds_since_repl)))
+            elif seconds_since_repl >= limits[0]:
+                results.append((STATUS_WARN,
+                                "'{}' replication lag is {} "
+                                "seconds".format(repl, seconds_since_repl)))
 
         if not repl_failures:
             pass
