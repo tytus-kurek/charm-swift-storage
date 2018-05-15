@@ -96,6 +96,7 @@ class SwiftStorageBasicDeployment(OpenStackAmuletDeployment):
             'zone': '1',
             'block-device': 'vdb',
             'overwrite': 'true',
+            'ephemeral-unmount': '/mnt',
         }
         pxc_config = {
             'innodb-buffer-pool-size': '256M',

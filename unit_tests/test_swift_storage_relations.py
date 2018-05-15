@@ -18,7 +18,7 @@ import json
 import uuid
 import tempfile
 
-from test_utils import CharmTestCase, patch_open
+from test_utils import CharmTestCase, TestKV, patch_open
 
 with patch('hooks.charmhelpers.contrib.hardening.harden.harden') as mock_dec:
     mock_dec.side_effect = (lambda *dargs, **dkwargs: lambda f:
@@ -47,7 +47,6 @@ TO_PATCH = [
     'configure_installation_source',
     'openstack_upgrade_available',
     # swift_storage_utils
-    'determine_block_devices',
     'do_openstack_upgrade',
     'ensure_swift_directories',
     'execd_preinstall',
@@ -66,6 +65,7 @@ TO_PATCH = [
     'ufw',
     'setup_ufw',
     'revoke_access',
+    'kv',
 ]
 
 
@@ -93,6 +93,8 @@ class SwiftStorageRelationsTests(CharmTestCase):
         self.config.side_effect = self.test_config.get
         self.relation_get.side_effect = self.test_relation.get
         self.get_relation_ip.return_value = '10.10.10.2'
+        self.test_kv = TestKV()
+        self.kv.return_value = self.test_kv
 
     @patch.object(hooks, 'add_ufw_gre_rule', lambda *args: None)
     def test_prunepath(self):
@@ -108,8 +110,6 @@ class SwiftStorageRelationsTests(CharmTestCase):
         )
         self.assertTrue(self.apt_update.called)
         self.apt_install.assert_called_with(PACKAGES, fatal=True)
-
-        self.assertTrue(self.setup_storage.called)
         self.assertTrue(self.execd_preinstall.called)
 
     @patch.object(hooks, 'add_ufw_gre_rule', lambda *args: None)
@@ -197,7 +197,7 @@ class SwiftStorageRelationsTests(CharmTestCase):
         kvstore = mock_kvstore.return_value
         kvstore.__enter__.return_value = kvstore
         kvstore.get.return_value = None
-        self.determine_block_devices.return_value = ['/dev/vdb']
+        self.test_kv.set('prepared-devices', ['/dev/vdb'])
 
         hooks.swift_storage_relation_joined()
 
@@ -254,8 +254,8 @@ class SwiftStorageRelationsTests(CharmTestCase):
         test_uuid = uuid.uuid4()
         test_environ = {'JUJU_ENV_UUID': test_uuid}
         mock_environ.get.side_effect = test_environ.get
-        self.determine_block_devices.return_value = ['/dev/vdb', '/dev/vdc',
-                                                     '/dev/vdd']
+        self.test_kv.set('prepared-devices', ['/dev/vdb', '/dev/vdc',
+                                              '/dev/vdd'])
         mock_local_unit.return_value = 'test/0'
         kvstore = mock_kvstore.return_value
         kvstore.__enter__.return_value = kvstore
@@ -298,8 +298,8 @@ class SwiftStorageRelationsTests(CharmTestCase):
         test_uuid = uuid.uuid4()
         test_environ = {'JUJU_ENV_UUID': test_uuid}
         mock_environ.get.side_effect = test_environ.get
-        self.determine_block_devices.return_value = ['/dev/vdb', '/dev/vdc',
-                                                     '/dev/vdd']
+        self.test_kv.set('prepared-devices', ['/dev/vdb', '/dev/vdc',
+                                              '/dev/vdd'])
         mock_local_unit.return_value = 'test/0'
         kvstore = mock_kvstore.return_value
         kvstore.__enter__.return_value = kvstore

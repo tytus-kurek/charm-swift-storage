@@ -1,0 +1,8 @@
+#!/bin/sh
+
+if ! dpkg -s swift > /dev/null 2>&1; then
+    juju-log "Swift not yet installed."
+    exit 0
+fi
+
+./hooks/storage.real

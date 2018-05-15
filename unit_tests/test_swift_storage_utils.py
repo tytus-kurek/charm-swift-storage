@@ -17,7 +17,7 @@ import tempfile
 from collections import namedtuple
 
 from mock import call, patch, MagicMock
-from test_utils import CharmTestCase, patch_open
+from test_utils import CharmTestCase, TestKV, patch_open
 
 import lib.swift_storage_utils as swift_utils
 
@@ -50,6 +50,8 @@ TO_PATCH = [
     'iter_units_for_relation_name',
     'ingress_address',
     'relation_ids',
+    'vaultlocker',
+    'kv',
 ]
 
 
@@ -104,11 +106,14 @@ TARGET        SOURCE   FSTYPE OPTIONS
 """
 
 
+
 class SwiftStorageUtilsTests(CharmTestCase):
 
     def setUp(self):
         super(SwiftStorageUtilsTests, self).setUp(swift_utils, TO_PATCH)
         self.config.side_effect = self.test_config.get
+        self.test_kv = TestKV()
+        self.kv.return_value = self.test_kv
 
     def test_ensure_swift_directories(self):
         with patch('os.path.isdir') as isdir:
@@ -229,18 +234,6 @@ class SwiftStorageUtilsTests(CharmTestCase):
         self.assertTrue(_find.called)
         self.assertEqual(result, [])
 
-    def test_mkfs_xfs(self):
-        swift_utils.mkfs_xfs('/dev/sdb')
-        self.check_call.assert_called_with(
-            ['mkfs.xfs', '-i', 'size=1024', '/dev/sdb']
-        )
-
-    def test_mkfs_xfs_force(self):
-        swift_utils.mkfs_xfs('/dev/sdb', force=True)
-        self.check_call.assert_called_with(
-            ['mkfs.xfs', '-f', '-i', 'size=1024', '/dev/sdb']
-        )
-
     @patch.object(swift_utils.charmhelpers.core.fstab, "Fstab")
     @patch.object(swift_utils, 'is_device_in_ring')
     @patch.object(swift_utils, 'clean_storage')
@@ -249,6 +242,7 @@ class SwiftStorageUtilsTests(CharmTestCase):
     def test_setup_storage_no_overwrite(self, determine, mkfs, clean,
                                         mock_is_device_in_ring, mock_Fstab):
         mock_is_device_in_ring.return_value = False
+        self.is_device_mounted.return_value = False
         determine.return_value = ['/dev/vdb']
         swift_utils.setup_storage()
         self.assertFalse(clean.called)
@@ -260,6 +254,8 @@ class SwiftStorageUtilsTests(CharmTestCase):
                  perms=0o755),
             call('/srv/node/vdb', group='swift', owner='swift')
         ])
+        self.assertEqual(self.test_kv.get('prepared-devices'),
+                         ['/dev/vdb'])
 
     @patch.object(swift_utils, 'is_device_in_ring')
     @patch.object(swift_utils, 'clean_storage')
@@ -270,6 +266,7 @@ class SwiftStorageUtilsTests(CharmTestCase):
         self.test_config.set('overwrite', True)
         mock_is_device_in_ring.return_value = False
         self.is_mapped_loopback_device.return_value = None
+        self.is_device_mounted.return_value = False
         determine.return_value = ['/dev/vdb']
         swift_utils.setup_storage()
         clean.assert_called_with('/dev/vdb')
@@ -288,6 +285,8 @@ class SwiftStorageUtilsTests(CharmTestCase):
                  perms=0o755),
             call('/srv/node/vdb', group='swift', owner='swift')
         ])
+        self.assertEqual(self.test_kv.get('prepared-devices'),
+                         ['/dev/vdb'])
 
     @patch.object(swift_utils, 'is_device_in_ring')
     @patch.object(swift_utils, 'determine_block_devices')
@@ -303,6 +302,71 @@ class SwiftStorageUtilsTests(CharmTestCase):
         mock_is_device_in_ring.return_value = True
         swift_utils.setup_storage()
         self.assertEqual(self.check_call.call_count, 0)
+
+    @patch.object(swift_utils, "uuid")
+    @patch.object(swift_utils, "vaultlocker")
+    @patch.object(swift_utils.charmhelpers.core.fstab, "Fstab")
+    @patch.object(swift_utils, 'is_device_in_ring')
+    @patch.object(swift_utils, 'clean_storage')
+    @patch.object(swift_utils, 'mkfs_xfs')
+    @patch.object(swift_utils, 'determine_block_devices')
+    def test_setup_storage_encrypt(self, determine, mkfs, clean,
+                                   mock_is_device_in_ring, mock_Fstab,
+                                   mock_vaultlocker, mock_uuid):
+        mock_context = MagicMock()
+        mock_context.complete = True
+        mock_context.return_value = 'test_context'
+        mock_vaultlocker.VaultKVContext.return_value = mock_context
+        mock_uuid.uuid4.return_value = '7c3ff7c8-fd20-4dca-9be6-6f44f213d3fe'
+        mock_is_device_in_ring.return_value = False
+        self.is_device_mounted.return_value = False
+        self.is_mapped_loopback_device.return_value = None
+        determine.return_value = ['/dev/vdb']
+        swift_utils.setup_storage(encrypt=True)
+        self.assertFalse(clean.called)
+        calls = [
+            call(['vaultlocker', 'encrypt',
+                  '--uuid', '7c3ff7c8-fd20-4dca-9be6-6f44f213d3fe',
+                  '/dev/vdb']),
+            call(['chown', '-R', 'swift:swift',
+                  '/srv/node/crypt-7c3ff7c8-fd20-4dca-9be6-6f44f213d3fe']),
+            call(['chmod', '-R', '0755',
+                  '/srv/node/crypt-7c3ff7c8-fd20-4dca-9be6-6f44f213d3fe'])
+        ]
+        self.check_call.assert_has_calls(calls)
+        self.mkdir.assert_has_calls([
+            call('/srv/node', owner='swift', group='swift',
+                 perms=0o755),
+            call('/srv/node/crypt-7c3ff7c8-fd20-4dca-9be6-6f44f213d3fe',
+                 group='swift', owner='swift')
+        ])
+        self.assertEqual(self.test_kv.get('prepared-devices'),
+                         ['/dev/mapper/crypt-7c3ff7c8-fd20-4dca-9be6-6f44f213d3fe'])
+        mock_vaultlocker.write_vaultlocker_conf.assert_called_with(
+             'test_context',
+             priority=90
+        )
+
+    @patch.object(swift_utils, "uuid")
+    @patch.object(swift_utils, "vaultlocker")
+    @patch.object(swift_utils.charmhelpers.core.fstab, "Fstab")
+    @patch.object(swift_utils, 'is_device_in_ring')
+    @patch.object(swift_utils, 'clean_storage')
+    @patch.object(swift_utils, 'mkfs_xfs')
+    @patch.object(swift_utils, 'determine_block_devices')
+    def test_setup_storage_encrypt_noready(self, determine, mkfs, clean,
+                                           mock_is_device_in_ring, mock_Fstab,
+                                           mock_vaultlocker, mock_uuid):
+        mock_context = MagicMock()
+        mock_context.complete = False
+        mock_context.return_value = {}
+        mock_vaultlocker.VaultKVContext.return_value = mock_context
+        swift_utils.setup_storage(encrypt=True)
+        mock_vaultlocker.write_vaultlocker_conf.assert_not_called()
+        clean.assert_not_called()
+        self.check_call.assert_not_called()
+        self.mkdir.assert_not_called()
+        self.assertEqual(self.test_kv.get('prepared-devices'), None)
 
     def _fake_is_device_mounted(self, device):
         if device in ["/dev/sda", "/dev/vda", "/dev/cciss/c0d0"]:
@@ -373,6 +437,7 @@ class SwiftStorageUtilsTests(CharmTestCase):
         server.return_value = 'swift_server_context'
         bind_context.return_value = 'bind_host_context'
         worker_context.return_value = 'worker_context'
+        self.vaultlocker.VaultKVContext.return_value = 'vl_context'
         self.get_os_codename_package.return_value = 'grizzly'
         configs = MagicMock()
         configs.register = MagicMock()
@@ -386,13 +451,16 @@ class SwiftStorageUtilsTests(CharmTestCase):
                  ['rsync_context', 'swift_context']),
             call('/etc/swift/account-server.conf', ['swift_context',
                                                     'bind_host_context',
-                                                    'worker_context']),
+                                                    'worker_context',
+                                                    'vl_context']),
             call('/etc/swift/object-server.conf', ['swift_context',
                                                    'bind_host_context',
-                                                   'worker_context']),
+                                                   'worker_context',
+                                                   'vl_context']),
             call('/etc/swift/container-server.conf', ['swift_context',
                                                       'bind_host_context',
-                                                      'worker_context'])
+                                                      'worker_context',
+                                                      'vl_context'])
         ]
         self.assertEqual(ex, configs.register.call_args_list)
 
@@ -434,6 +502,7 @@ class SwiftStorageUtilsTests(CharmTestCase):
         mock_is_device_in_ring.return_value = False
         determine.return_value = ["/dev/loop0", ]
         self.is_mapped_loopback_device.return_value = "/srv/test.img"
+        self.is_device_mounted.return_value = False
         swift_utils.setup_storage()
         self.mount.assert_called_with(
             "/dev/loop0",
@@ -476,6 +545,7 @@ class SwiftStorageUtilsTests(CharmTestCase):
         mock_is_device_in_ring.return_value = False
         determine.return_value = ["/dev/loop0", ]
         self.is_mapped_loopback_device.return_value = "/srv/test.img"
+        self.is_device_mounted.return_value = False
         swift_utils.setup_storage()
         self.mount.assert_called_with(
             "/srv/test.img",

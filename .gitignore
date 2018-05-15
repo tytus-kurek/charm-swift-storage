@@ -8,3 +8,5 @@ tags
 *.pyc
 tests/cirros-*
 func-results.json
+.settings
+**/__pycache__
