@@ -541,7 +541,7 @@ def setup_storage(encrypt=False):
             fstab_entry = fstab.get_entry_by_attr('mountpoint', mountpoint)
             if fstab_entry and loopback_device == fstab_entry.device:
                 dev = loopback_device
-            options = "loop,defaults"
+            options = "loop,nofail,defaults"
 
         filesystem = "xfs"
 
