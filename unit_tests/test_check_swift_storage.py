@@ -15,7 +15,7 @@
 import datetime
 import sys
 import unittest
-import urllib2
+import urllib
 
 from mock import (
     patch,
@@ -63,7 +63,7 @@ class CheckSwiftStorageTestCase(unittest.TestCase):
         """
         Ensure md5 checksum is generated from a file content
         """
-        with patch("__builtin__.open", mock_open(read_data='data')) as \
+        with patch("builtins.open", mock_open(read_data=b'data')) as \
                 mock_file:
             result = generate_md5('path/to/file')
             mock_file.assert_called_with('path/to/file', 'rb')
@@ -71,24 +71,26 @@ class CheckSwiftStorageTestCase(unittest.TestCase):
             self.assertEqual(result,
                              '8d777f385d3dfec8815d20f7496026dc')
 
-    @patch('urllib2.urlopen')
+    @patch('urllib.request.urlopen')
     def test_check_md5_unknown_urlerror(self, mock_urlopen):
         """
-        Force urllib2.URLError to test try-except
+        Force urllib.request.URLError to test try-except
         """
         base_url = 'http://localhost:6000/recon/'
         url = '{}ringmd5'.format(base_url)
         error = 'connection refused'
-        mock_urlopen.side_effect = urllib2.URLError(Mock(return_value=error))
+        mock_urlopen.side_effect = (urllib
+                                    .error
+                                    .URLError(Mock(return_value=error)))
         result = check_md5(base_url)
         self.assertEqual(result,
                          [(STATUS_UNKNOWN,
                            "Can't open url: {}".format(url))])
 
-    @patch('urllib2.urlopen')
+    @patch('urllib.request.urlopen')
     def test_check_md5_unknown_valueerror1(self, mock_urlopen):
         """
-        Force ValueError on urllib2 to test try-except
+        Force ValueError on urllib.error.URLError to test try-except
         """
         base_url = 'asdfasdf'
         url = '{}ringmd5'.format(base_url)
@@ -99,7 +101,7 @@ class CheckSwiftStorageTestCase(unittest.TestCase):
                          [(STATUS_UNKNOWN,
                            "Can't parse status data")])
 
-    @patch('urllib2.urlopen')
+    @patch('urllib.request.urlopen')
     def test_check_md5_unknown_valueerror2(self, mock_urlopen):
         """
         Force ValueError on json to test try-catch
@@ -125,7 +127,7 @@ class CheckSwiftStorageTestCase(unittest.TestCase):
                 '"0ea1ec9585ef644ce2b5c5b1dced4128"}'
         pmock_jdata = PropertyMock(return_value=jdata)
         mock_generate_md5.side_effect = IOError()
-        with patch('urllib2.urlopen') as mock_urlopen:
+        with patch('urllib.request.urlopen') as mock_urlopen:
             mock_urlopen.return_value = MagicMock(read=pmock_jdata)
             result = check_md5('.')
             mock_urlopen.assert_called_with('.ringmd5')
@@ -148,7 +150,7 @@ class CheckSwiftStorageTestCase(unittest.TestCase):
                 '"0ea1ec9585ef644ce2b5c5b1dced4128"}'
         pmock_jdata = PropertyMock(return_value=jdata)
         mock_generate_md5.return_value = 'xxxx'
-        with patch('urllib2.urlopen') as mock_urlopen:
+        with patch('urllib.request.urlopen') as mock_urlopen:
             mock_urlopen.return_value = MagicMock(read=pmock_jdata)
             result = check_md5('.')
             mock_urlopen.assert_called_with('.ringmd5')
@@ -171,22 +173,24 @@ class CheckSwiftStorageTestCase(unittest.TestCase):
                 '"6b4f3a0ef3731f18291ecd053ce0d9b6"}'
         pmock_jdata = PropertyMock(return_value=jdata)
         mock_generate_md5.return_value = '6b4f3a0ef3731f18291ecd053ce0d9b6'
-        with patch('urllib2.urlopen') as mock_urlopen:
+        with patch('urllib.request.urlopen') as mock_urlopen:
             mock_urlopen.return_value = MagicMock(read=pmock_jdata)
             result = check_md5('.')
             mock_urlopen.assert_called_with('.ringmd5')
             self.assertEqual(result,
                              [(STATUS_OK, 'OK')])
 
-    @patch('urllib2.urlopen')
+    @patch('urllib.request.urlopen')
     def test_check_replication_unknown_urlerror(self, mock_urlopen):
         """
-        Force urllib2.URLError to test try-catch
+        Force urllib.error.URLError to test try-catch
         """
         base_url = 'http://localhost:6000/recon/'
         url = '{}replication/{}'
         error = 'connection refused'
-        mock_urlopen.side_effect = urllib2.URLError(Mock(return_value=error))
+        mock_urlopen.side_effect = (urllib
+                                    .error
+                                    .URLError(Mock(return_value=error)))
         result = check_replication(base_url, 60)
         expected_result = [(STATUS_UNKNOWN,
                             "Can't open url: "
@@ -194,10 +198,10 @@ class CheckSwiftStorageTestCase(unittest.TestCase):
                            for name in ('account', 'object', 'container')]
         self.assertEqual(result, expected_result)
 
-    @patch('urllib2.urlopen')
+    @patch('urllib.request.urlopen')
     def test_check_replication_unknown_valueerror1(self, mock_urlopen):
         """
-        Force ValueError on urllib2 to test try-catch
+        Force ValueError on urllib.error to test try-catch
         """
         base_url = '.'
         mock_urlopen.side_effect = ValueError(Mock(return_value=''))
@@ -206,7 +210,7 @@ class CheckSwiftStorageTestCase(unittest.TestCase):
                          3*[(STATUS_UNKNOWN,
                              "Can't parse status data")])
 
-    @patch('urllib2.urlopen')
+    @patch('urllib.request.urlopen')
     def test_check_replication_unknown_valueerror2(self, mock_urlopen):
         """
         Force ValueError on json to test try-catch
@@ -233,7 +237,7 @@ class CheckSwiftStorageTestCase(unittest.TestCase):
                 '"empty": 0}, "replication_time": 0.0076580047607421875}'
         pmock_jdata = PropertyMock(return_value=jdata)
         mock_timestamp.return_value = (None, 0)
-        with patch('urllib2.urlopen') as mock_urlopen:
+        with patch('urllib.request.urlopen') as mock_urlopen:
             mock_urlopen.return_value = MagicMock(read=pmock_jdata)
             result = check_replication(base_url, [4, 10, 4, 10])
             self.assertEqual(result,
@@ -256,7 +260,7 @@ class CheckSwiftStorageTestCase(unittest.TestCase):
                 '"empty": 0}, "replication_time": 0.0076580047607421875}'
         pmock_jdata = PropertyMock(return_value=jdata)
         mock_timestamp.return_value = (MagicMock(days=0, seconds=12), 0)
-        with patch('urllib2.urlopen') as mock_urlopen:
+        with patch('urllib.request.urlopen') as mock_urlopen:
             mock_urlopen.return_value = MagicMock(read=pmock_jdata)
             result = check_replication(base_url, [4, 10, 4, 10])
             self.assertEqual(result,
@@ -279,7 +283,7 @@ class CheckSwiftStorageTestCase(unittest.TestCase):
                 '"empty": 0}, "replication_time": 0.0076580047607421875}'
         pmock_jdata = PropertyMock(return_value=jdata)
         mock_timestamp.return_value = (MagicMock(days=0, seconds=0), 12)
-        with patch('urllib2.urlopen') as mock_urlopen:
+        with patch('urllib.request.urlopen') as mock_urlopen:
             mock_urlopen.return_value = MagicMock(read=pmock_jdata)
             result = check_replication(base_url, [4, 10, 4, 10])
             self.assertEqual(result,
@@ -299,7 +303,7 @@ class CheckSwiftStorageTestCase(unittest.TestCase):
                 '"empty": 0}, "replication_time": 0.0076580047607421875}'
         pmock_jdata = PropertyMock(return_value=jdata)
         mock_timestamp.return_value = (MagicMock(days=0, seconds=0), -1)
-        with patch('urllib2.urlopen') as mock_urlopen:
+        with patch('urllib.request.urlopen') as mock_urlopen:
             mock_urlopen.return_value = MagicMock(read=pmock_jdata)
             result = check_replication(base_url, [4, 10, 4, 10])
             self.assertEqual(result,
@@ -321,7 +325,7 @@ class CheckSwiftStorageTestCase(unittest.TestCase):
                 '"empty": 0}, "replication_time": 0.0076580047607421875}'
         pmock_jdata = PropertyMock(return_value=jdata)
         mock_timestamp.return_value = (MagicMock(days=0, seconds=5), 0)
-        with patch('urllib2.urlopen') as mock_urlopen:
+        with patch('urllib.request.urlopen') as mock_urlopen:
             mock_urlopen.return_value = MagicMock(read=pmock_jdata)
             result = check_replication(base_url, [4, 10, 4, 10])
             self.assertEqual(result,
@@ -344,7 +348,7 @@ class CheckSwiftStorageTestCase(unittest.TestCase):
                 '"empty": 0}, "replication_time": 0.0076580047607421875}'
         pmock_jdata = PropertyMock(return_value=jdata)
         mock_timestamp.return_value = (MagicMock(days=2, seconds=5), 0)
-        with patch('urllib2.urlopen') as mock_urlopen:
+        with patch('urllib.request.urlopen') as mock_urlopen:
             mock_urlopen.return_value = MagicMock(read=pmock_jdata)
             result = check_replication(base_url, [4, 10, 4, 10])
             self.assertEqual(result,
@@ -367,7 +371,8 @@ class CheckSwiftStorageTestCase(unittest.TestCase):
                 '"empty": 0}, "replication_time": 0.0076580047607421875}'
         pmock_jdata = PropertyMock(return_value=jdata)
         mock_timestamp.return_value = (MagicMock(days=0, seconds=0), 5)
-        with patch('urllib2.urlopen') as mock_urlopen:
+        # with patch('urllib2.urlopen') as mock_urlopen:
+        with patch('urllib.request.urlopen') as mock_urlopen:
             mock_urlopen.return_value = MagicMock(read=pmock_jdata)
             result = check_replication(base_url, [4, 10, 4, 10])
             self.assertEqual(result,
@@ -388,7 +393,7 @@ class CheckSwiftStorageTestCase(unittest.TestCase):
                 '"empty": 0}, "replication_time": 0.0076580047607421875}'
         pmock_jdata = PropertyMock(return_value=jdata)
         mock_timestamp.return_value = (MagicMock(days=0, seconds=0), 0)
-        with patch('urllib2.urlopen') as mock_urlopen:
+        with patch('urllib.request.urlopen') as mock_urlopen:
             mock_urlopen.return_value = MagicMock(read=pmock_jdata)
             result = check_replication(base_url, [4, 10, 4, 10])
             self.assertEqual(result, [(STATUS_OK, 'OK')])

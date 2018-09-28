@@ -10,13 +10,13 @@ from subprocess import check_call, call, CalledProcessError, check_output
 
 # Stuff copied from cinder py charm, needs to go somewhere
 # common.
-from misc_utils import (
+from lib.misc_utils import (
     ensure_block_device,
     clean_storage,
     is_paused
 )
 
-from swift_storage_context import (
+from lib.swift_storage_context import (
     SwiftStorageContext,
     SwiftStorageServerContext,
     RsyncContext,
@@ -222,7 +222,7 @@ def _is_storage_ready(partition):
 def get_mount_point(device):
     mnt_point = None
     try:
-        out = check_output(['findmnt', device])
+        out = check_output(['findmnt', device]).decode('ascii')
         mnt_points = []
         for line in out.split('\n'):
             if line and not line.startswith('TARGET'):
@@ -286,7 +286,8 @@ def determine_block_devices():
     storage_ids = storage_list('block-devices')
     bdevs.extend((storage_get('location', s) for s in storage_ids))
 
-    bdevs = list(set(bdevs))
+    # only sorted so the tests pass; doesn't affect functionality
+    bdevs = sorted(set(bdevs))
     # attempt to ensure block devices, but filter out missing devs
     _none = ['None', 'none']
     valid_bdevs = \
@@ -340,7 +341,7 @@ def is_device_in_ring(dev, skip_rel_check=False, ignore_deactivated=True):
                 "devstore)" % (dev), level=INFO)
             return True
 
-        for key, val in devstore.iteritems():
+        for key, val in devstore.items():
             if key != masterkey and val.get('blkid') == blk_uuid:
                 log("Device '%s' appears to be in use by Swift (found in "
                     "local devstore) but has a different "
@@ -354,7 +355,7 @@ def is_device_in_ring(dev, skip_rel_check=False, ignore_deactivated=True):
         if ignore_deactivated:
             deactivated = [k == masterkey and v.get('blkid') == blk_uuid and
                            v.get('status') != 'active'
-                           for k, v in devstore.iteritems()]
+                           for k, v in devstore.items()]
 
     if skip_rel_check:
         log("Device '%s' does not appear to be in use by swift (searched "
@@ -387,7 +388,9 @@ def get_device_blkid(dev):
     :returns: UUID of device if found else None
     """
     try:
-        blk_uuid = subprocess.check_output(['blkid', '-s', 'UUID', dev])
+        blk_uuid = (subprocess
+                    .check_output(['blkid', '-s', 'UUID', dev])
+                    .decode('ascii'))
     except CalledProcessError:
         # If the device has not be used or formatted yet we expect this to
         # fail.
@@ -420,7 +423,7 @@ def remember_devices(devs):
             log("Device '%s' already in devstore (status:%s)" %
                 (dev, devstore[key].get('status')), level=DEBUG)
         else:
-            existing = [(k, v) for k, v in devstore.iteritems()
+            existing = [(k, v) for k, v in devstore.items()
                         if v.get('blkid') == blk_uuid and
                         re.match("^(.+)@(.+)$", k).group(1) == dev]
             if existing:
@@ -435,7 +438,7 @@ def remember_devices(devs):
                 devstore[key] = {'blkid': blk_uuid, 'status': 'active'}
 
     if devstore:
-        kvstore.set(key='devices', value=json.dumps(devstore))
+        kvstore.set(key='devices', value=json.dumps(devstore, sort_keys=True))
 
     kvstore.flush()
     kvstore.close()

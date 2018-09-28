@@ -12,12 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from collections import namedtuple
+from mock import call, patch, MagicMock
 import shutil
 import tempfile
-from collections import namedtuple
 
-from mock import call, patch, MagicMock
-from test_utils import CharmTestCase, TestKV, patch_open
+from unit_tests.test_utils import CharmTestCase, TestKV, patch_open
 
 import lib.swift_storage_utils as swift_utils
 
@@ -175,7 +175,7 @@ class SwiftStorageUtilsTests(CharmTestCase):
         self.test_config.set('block-device', bdevs)
         result = swift_utils.determine_block_devices()
         ex = ['/dev/vdb', '/dev/vdc', '/tmp/swift.img']
-        ex = list(set(ex))
+        ex = sorted(set(ex))
         self.assertEqual(ex, result)
 
     @patch.object(swift_utils, 'ensure_block_device')
@@ -185,7 +185,7 @@ class SwiftStorageUtilsTests(CharmTestCase):
         self.test_config.set('block-device', bdevs)
         result = swift_utils.determine_block_devices()
         ex = ['/dev/vdb', '/dev/vdc', '/tmp/swift.img']
-        ex = list(set(ex))
+        ex = sorted(set(ex))
         self.assertEqual(ex, result)
 
     @patch.object(swift_utils, 'ensure_block_device')
@@ -206,14 +206,16 @@ class SwiftStorageUtilsTests(CharmTestCase):
         def _findmnt(cmd):
             dev = cmd[1].split('/')[-1]
             mnt_point = '/srv/node/' + dev
-            return FINDMNT_FOUND_TEMPLATE.format(mnt_point, dev)
+            return (FINDMNT_FOUND_TEMPLATE
+                    .format(mnt_point, dev).encode('ascii'))
         _check_output.side_effect = _findmnt
         _ensure.side_effect = self._fake_ensure
         self.test_config.set('block-device', 'guess')
         _find.return_value = ['/dev/vdb', '/dev/sdb']
         result = swift_utils.determine_block_devices()
         self.assertTrue(_find.called)
-        self.assertEqual(result, ['/dev/vdb', '/dev/sdb'])
+        # always returns sorted results
+        self.assertEqual(result, ['/dev/sdb', '/dev/vdb'])
 
     @patch.object(swift_utils, 'check_output')
     @patch.object(swift_utils, 'find_block_devices')
@@ -225,7 +227,8 @@ class SwiftStorageUtilsTests(CharmTestCase):
         def _findmnt(cmd):
             dev = cmd[1].split('/')[-1]
             mnt_point = '/'
-            return FINDMNT_FOUND_TEMPLATE.format(mnt_point, dev)
+            return (FINDMNT_FOUND_TEMPLATE
+                    .format(mnt_point, dev).encode('ascii'))
         _check_output.side_effect = _findmnt
         _ensure.side_effect = self._fake_ensure
         self.test_config.set('block-device', 'guess')
@@ -569,7 +572,7 @@ class SwiftStorageUtilsTests(CharmTestCase):
     def test_get_device_blkid(self, mock_check_output):
         dev = '/dev/vdb'
         cmd = ['blkid', '-s', 'UUID', dev]
-        ret = '/dev/vdb: UUID="808bc298-0609-4619-aaef-ed7a5ab0ebb7" \n'
+        ret = b'/dev/vdb: UUID="808bc298-0609-4619-aaef-ed7a5ab0ebb7" \n'
         mock_check_output.return_value = ret
         uuid = swift_utils.get_device_blkid(dev)
         self.assertEqual(uuid, "808bc298-0609-4619-aaef-ed7a5ab0ebb7")

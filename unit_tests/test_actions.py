@@ -21,7 +21,7 @@ import unittest
 import mock
 import yaml
 
-from test_utils import CharmTestCase
+from unit_tests.test_utils import CharmTestCase
 
 from mock import patch, MagicMock
 
@@ -30,12 +30,12 @@ from mock import patch, MagicMock
 sys.modules['apt'] = MagicMock()
 sys.modules['apt_pkg'] = MagicMock()
 
-with patch('actions.hooks.charmhelpers.contrib.hardening.harden.harden') as \
+with patch('charmhelpers.contrib.hardening.harden.harden') as \
         mock_dec:
     mock_dec.side_effect = (lambda *dargs, **dkwargs: lambda f:
                             lambda *args, **kwargs: f(*args, **kwargs))
-    with patch('actions.hooks.lib.misc_utils.is_paused') as is_paused:
-        with patch('actions.hooks.lib.swift_storage_utils.register_configs'):
+    with patch('lib.misc_utils.is_paused') as is_paused:
+        with patch('lib.swift_storage_utils.register_configs'):
             import actions.actions
 
 
@@ -196,7 +196,8 @@ class GetActionParserTestCase(unittest.TestCase):
         """ArgumentParser is seeded from actions.yaml."""
         actions_yaml = tempfile.NamedTemporaryFile(
             prefix="GetActionParserTestCase", suffix="yaml")
-        actions_yaml.write(yaml.dump({"foo": {"description": "Foo is bar"}}))
+        actions_yaml.write(
+            yaml.dump({"foo": {"description": "Foo is bar"}}).encode('utf-8'))
         actions_yaml.seek(0)
         parser = actions.actions.get_action_parser(actions_yaml.name, "foo",
                                                    get_services=lambda: [])

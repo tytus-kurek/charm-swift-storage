@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # Copyright (C) 2014, 2017 Canonical
 # All Rights Reserved
@@ -6,7 +6,7 @@
 
 import sys
 import json
-import urllib2
+import urllib
 import argparse
 import hashlib
 import datetime
@@ -20,10 +20,11 @@ STATUS_UNKNOWN = 3
 def generate_md5(filename):
     with open(filename, 'rb') as f:
         md5 = hashlib.md5()
-        buffer = f.read(2 ** 20)
-        while buffer:
-            md5.update(buffer)
+        while True:
             buffer = f.read(2 ** 20)
+            if not buffer:
+                break
+            md5.update(buffer)
     return md5.hexdigest()
 
 
@@ -34,9 +35,9 @@ def check_md5(base_url):
                  "/etc/swift/container.ring.gz"]
     results = []
     try:
-        data = urllib2.urlopen(url).read()
+        data = urllib.request.urlopen(url).read()
         ringmd5_info = json.loads(data)
-    except urllib2.URLError:
+    except urllib.error.URLError:
         return [(STATUS_UNKNOWN, "Can't open url: {}".format(url))]
     except ValueError:
         return [(STATUS_UNKNOWN, "Can't parse status data")]
@@ -96,9 +97,9 @@ def check_replication(base_url, limits):
     for repl in types:
         url = base_url + "replication/" + repl
         try:
-            data = urllib2.urlopen(url).read()
+            data = urllib.request.urlopen(url).read()
             repl_info = json.loads(data)
-        except urllib2.URLError:
+        except urllib.error.URLError:
             results.append((STATUS_UNKNOWN, "Can't open url: {}".format(url)))
             continue
         except ValueError:

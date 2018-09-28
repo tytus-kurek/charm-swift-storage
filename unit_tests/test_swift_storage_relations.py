@@ -13,18 +13,18 @@
 # limitations under the License.
 
 from mock import patch
-import os
 import json
-import uuid
+import os
 import tempfile
+import uuid
 
-from test_utils import CharmTestCase, TestKV, patch_open
+from unit_tests.test_utils import CharmTestCase, TestKV, patch_open
 
-with patch('hooks.charmhelpers.contrib.hardening.harden.harden') as mock_dec:
+with patch('charmhelpers.contrib.hardening.harden.harden') as mock_dec:
     mock_dec.side_effect = (lambda *dargs, **dkwargs: lambda f:
                             lambda *args, **kwargs: f(*args, **kwargs))
-    with patch('hooks.lib.misc_utils.is_paused') as is_paused:
-        with patch('hooks.lib.swift_storage_utils.register_configs') as _:
+    with patch('lib.misc_utils.is_paused') as is_paused:
+        with patch('lib.swift_storage_utils.register_configs') as _:
             import hooks.swift_storage_hooks as hooks
 
 from lib.swift_storage_utils import PACKAGES
@@ -69,7 +69,7 @@ TO_PATCH = [
 ]
 
 
-UFW_DUMMY_RULES = """
+UFW_DUMMY_RULES = b"""
 # Don't delete these required lines, otherwise there will be errors
 *filter
 :ufw-before-input - [0:0]
@@ -88,8 +88,7 @@ UFW_DUMMY_RULES = """
 class SwiftStorageRelationsTests(CharmTestCase):
 
     def setUp(self):
-        super(SwiftStorageRelationsTests, self).setUp(hooks,
-                                                      TO_PATCH)
+        super(SwiftStorageRelationsTests, self).setUp(hooks, TO_PATCH)
         self.config.side_effect = self.test_config.get
         self.relation_get.side_effect = self.test_relation.get
         self.get_relation_ip.return_value = '10.10.10.2'
@@ -178,14 +177,14 @@ class SwiftStorageRelationsTests(CharmTestCase):
         self.assertTrue(self.update_nrpe_config.called)
         self.assertTrue(mock_ensure_devs_tracked.called)
 
-    @patch('hooks.lib.swift_storage_utils.get_device_blkid',
+    @patch('lib.swift_storage_utils.get_device_blkid',
            lambda dev: str(uuid.uuid4()))
     @patch.object(hooks.os, 'environ')
-    @patch('hooks.lib.swift_storage_utils.os.path.isdir', lambda *args: True)
+    @patch('lib.swift_storage_utils.os.path.isdir', lambda *args: True)
     @patch.object(hooks, 'relation_set')
-    @patch('hooks.lib.swift_storage_utils.local_unit')
-    @patch('hooks.lib.swift_storage_utils.relation_ids', lambda *args: [])
-    @patch('hooks.lib.swift_storage_utils.KVStore')
+    @patch('lib.swift_storage_utils.local_unit')
+    @patch('lib.swift_storage_utils.relation_ids', lambda *args: [])
+    @patch('lib.swift_storage_utils.KVStore')
     @patch.object(uuid, 'uuid4', lambda: 'a-test-uuid')
     def _test_storage_joined_single_device(self, mock_kvstore, mock_local_unit,
                                            mock_rel_set, mock_environ,
@@ -199,7 +198,10 @@ class SwiftStorageRelationsTests(CharmTestCase):
         kvstore.get.return_value = None
         self.test_kv.set('prepared-devices', ['/dev/vdb'])
 
-        hooks.swift_storage_relation_joined()
+        # py3 is very picky, and log is only patched in
+        # hooks.swift_storage_hooks
+        with patch('lib.swift_storage_utils.log'):
+            hooks.swift_storage_relation_joined()
 
         self.get_relation_ip.assert_called_once_with('swift-storage')
 
@@ -230,8 +232,8 @@ class SwiftStorageRelationsTests(CharmTestCase):
         devices = {"vdb@%s" % (test_uuid):
                    {"status": "active",
                     "blkid": 'a-test-uuid'}}
-        kvstore.set.assert_called_with(key='devices',
-                                       value=json.dumps(devices))
+        kvstore.set.assert_called_with(
+            key='devices', value=json.dumps(devices, sort_keys=True))
 
     def test_storage_joined_single_device_juju_1(self):
         '''Ensure use of JUJU_ENV_UUID for Juju < 2'''
@@ -241,13 +243,13 @@ class SwiftStorageRelationsTests(CharmTestCase):
         '''Ensure use of JUJU_MODEL_UUID for Juju >= 2'''
         self._test_storage_joined_single_device(env_key='JUJU_MODEL_UUID')
 
-    @patch('hooks.lib.swift_storage_utils.get_device_blkid',
+    @patch('lib.swift_storage_utils.get_device_blkid',
            lambda dev: '%s-blkid-uuid' % os.path.basename(dev))
     @patch.object(hooks.os, 'environ')
-    @patch('hooks.lib.swift_storage_utils.os.path.isdir', lambda *args: True)
-    @patch('hooks.lib.swift_storage_utils.local_unit')
-    @patch('hooks.lib.swift_storage_utils.relation_ids', lambda *args: [])
-    @patch('hooks.lib.swift_storage_utils.KVStore')
+    @patch('lib.swift_storage_utils.os.path.isdir', lambda *args: True)
+    @patch('lib.swift_storage_utils.local_unit')
+    @patch('lib.swift_storage_utils.relation_ids', lambda *args: [])
+    @patch('lib.swift_storage_utils.KVStore')
     @patch.object(uuid, 'uuid4', lambda: 'a-test-uuid')
     def test_storage_joined_multi_device(self, mock_kvstore, mock_local_unit,
                                          mock_environ):
@@ -272,7 +274,10 @@ class SwiftStorageRelationsTests(CharmTestCase):
 
         kvstore.get.side_effect = fake_kv_get
 
-        hooks.swift_storage_relation_joined()
+        # py3 is very picky, and log is only patched in
+        # hooks.swift_storage_hooks
+        with patch('lib.swift_storage_utils.log'):
+            hooks.swift_storage_relation_joined()
         devices = {"vdb@%s" % (test_uuid): {"status": "active",
                                             "blkid": 'vdb-blkid-uuid'},
                    "vdd@%s" % (test_uuid): {"status": "active",
@@ -280,17 +285,17 @@ class SwiftStorageRelationsTests(CharmTestCase):
                    "vdc@%s" % (test_uuid): {"status": "active",
                                             "blkid": 'vdc-blkid-uuid'}}
         kvstore.set.assert_called_with(
-            key='devices', value=json.dumps(devices)
+            key='devices', value=json.dumps(devices, sort_keys=True)
         )
         self.get_relation_ip.assert_called_once_with('swift-storage')
 
-    @patch('hooks.lib.swift_storage_utils.get_device_blkid',
+    @patch('lib.swift_storage_utils.get_device_blkid',
            lambda dev: '%s-blkid-uuid' % os.path.basename(dev))
     @patch.object(hooks.os, 'environ')
-    @patch('hooks.lib.swift_storage_utils.os.path.isdir', lambda *args: True)
-    @patch('hooks.lib.swift_storage_utils.local_unit')
-    @patch('hooks.lib.swift_storage_utils.relation_ids', lambda *args: [])
-    @patch('hooks.lib.swift_storage_utils.KVStore')
+    @patch('lib.swift_storage_utils.os.path.isdir', lambda *args: True)
+    @patch('lib.swift_storage_utils.local_unit')
+    @patch('lib.swift_storage_utils.relation_ids', lambda *args: [])
+    @patch('lib.swift_storage_utils.KVStore')
     def test_storage_joined_dev_exists_unknown_juju_env_uuid(self,
                                                              mock_kvstore,
                                                              mock_local_unit,
@@ -317,7 +322,11 @@ class SwiftStorageRelationsTests(CharmTestCase):
 
         kvstore.get.side_effect = fake_kv_get
 
-        hooks.swift_storage_relation_joined()
+        # py3 is very picky, and log is only patched in
+        # hooks.swift_storage_hooks
+        with patch('lib.swift_storage_utils.log'):
+            hooks.swift_storage_relation_joined()
+
         devices = {"vdb@%s" % (test_uuid): {"status": "active",
                                             "blkid": 'vdb-blkid-uuid'},
                    "vdd@%s" % (test_uuid): {"status": "active",
@@ -325,7 +334,7 @@ class SwiftStorageRelationsTests(CharmTestCase):
                    "vdc@%s" % (test_uuid): {"status": "active",
                                             "blkid": 'vdc-blkid-uuid'}}
         kvstore.set.assert_called_with(
-            key='devices', value=json.dumps(devices)
+            key='devices', value=json.dumps(devices, sort_keys=True)
         )
         self.get_relation_ip.assert_called_once_with('swift-storage')
 
@@ -345,8 +354,8 @@ class SwiftStorageRelationsTests(CharmTestCase):
             'http://swift-proxy.com/rings/'
         )
 
-    @patch('sys.argv')
-    def test_main_hook_missing(self, _argv):
+    @patch('sys.argv', new=['dodah'])
+    def test_main_hook_missing(self):
         hooks.main()
         self.assertTrue(self.log.called)
 

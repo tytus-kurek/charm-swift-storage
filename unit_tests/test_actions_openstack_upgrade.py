@@ -31,9 +31,7 @@ with patch('charmhelpers.contrib.hardening.harden.harden') as mock_dec:
         with patch('lib.swift_storage_utils.register_configs'):
             import actions.openstack_upgrade as openstack_upgrade
 
-from test_utils import (
-    CharmTestCase
-)
+from unit_tests.test_utils import CharmTestCase
 
 TO_PATCH = [
     'config_changed',
@@ -47,10 +45,9 @@ class TestSwiftStorageUpgradeActions(CharmTestCase):
         super(TestSwiftStorageUpgradeActions, self).setUp(openstack_upgrade,
                                                           TO_PATCH)
 
-    @patch('actions.charmhelpers.contrib.openstack.utils.config')
-    @patch('actions.charmhelpers.contrib.openstack.utils.action_set')
-    @patch('actions.charmhelpers.contrib.openstack.utils.'
-           'openstack_upgrade_available')
+    @patch('charmhelpers.contrib.openstack.utils.config')
+    @patch('charmhelpers.contrib.openstack.utils.action_set')
+    @patch('charmhelpers.contrib.openstack.utils.openstack_upgrade_available')
     def test_openstack_upgrade_true(self, upgrade_avail,
                                     action_set, config):
         upgrade_avail.return_value = True
@@ -61,10 +58,9 @@ class TestSwiftStorageUpgradeActions(CharmTestCase):
         self.assertTrue(self.do_openstack_upgrade.called)
         self.assertTrue(self.config_changed.called)
 
-    @patch('actions.charmhelpers.contrib.openstack.utils.config')
-    @patch('actions.charmhelpers.contrib.openstack.utils.action_set')
-    @patch('actions.charmhelpers.contrib.openstack.utils.'
-           'openstack_upgrade_available')
+    @patch('charmhelpers.contrib.openstack.utils.config')
+    @patch('charmhelpers.contrib.openstack.utils.action_set')
+    @patch('charmhelpers.contrib.openstack.utils.openstack_upgrade_available')
     def test_openstack_upgrade_false(self, upgrade_avail,
                                      action_set, config):
         upgrade_avail.return_value = True

@@ -13,7 +13,8 @@
 # limitations under the License.
 
 from mock import MagicMock
-from test_utils import CharmTestCase, patch_open
+
+from unit_tests.test_utils import CharmTestCase, patch_open
 
 import lib.swift_storage_context as swift_context
 
