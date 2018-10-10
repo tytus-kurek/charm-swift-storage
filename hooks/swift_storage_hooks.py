@@ -71,6 +71,8 @@ from charmhelpers.core.host import (
     rsync,
     write_file,
     umount,
+    service_start,
+    service_stop,
 )
 
 from charmhelpers.core.sysctl import create as create_sysctl
@@ -82,6 +84,11 @@ from charmhelpers.contrib.openstack.utils import (
     openstack_upgrade_available,
     set_os_workload_status,
     os_application_version_set,
+    clear_unit_paused,
+    clear_unit_upgrading,
+    is_unit_paused_set,
+    set_unit_paused,
+    set_unit_upgrading,
 )
 from charmhelpers.contrib.network.ip import (
     get_relation_ip,
@@ -367,6 +374,30 @@ def update_nrpe_config():
 @harden()
 def update_status():
     log('Updating status.')
+
+
+@hooks.hook('pre-series-upgrade')
+def pre_series_upgrade():
+    log("Running prepare series upgrade hook", "INFO")
+    if not is_unit_paused_set():
+        for service in SWIFT_SVCS:
+            stopped = service_stop(service)
+            if not stopped:
+                raise Exception("{} didn't stop cleanly.".format(service))
+        set_unit_paused()
+    set_unit_upgrading()
+
+
+@hooks.hook('post-series-upgrade')
+def post_series_upgrade():
+    log("Running complete series upgrade hook", "INFO")
+    clear_unit_paused()
+    clear_unit_upgrading()
+    if not is_unit_paused_set():
+        for service in SWIFT_SVCS:
+            started = service_start(service)
+            if not started:
+                raise Exception("{} didn't start cleanly.".format(service))
 
 
 def main():

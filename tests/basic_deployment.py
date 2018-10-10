@@ -130,8 +130,18 @@ class SwiftStorageBasicDeployment(OpenStackAmuletDeployment):
                                            self._get_openstack_release())
         )
 
+        force_v1_client = False
+        if self._get_openstack_release() == self.trusty_icehouse:
+            # Updating image properties (such as arch or hypervisor) using the
+            # v2 api in icehouse results in:
+            # https://bugs.launchpad.net/python-glanceclient/+bug/1371559
+            u.log.debug('Forcing glance to use v1 api')
+            force_v1_client = True
+
         # Authenticate admin with glance endpoint
-        self.glance = u.authenticate_glance_admin(self.keystone)
+        self.glance = u.authenticate_glance_admin(
+            self.keystone,
+            force_v1_client=force_v1_client)
 
         keystone_ip = self.keystone_sentry.info['public-address']
         keystone_relation = self.keystone_sentry.relation(
@@ -452,12 +462,17 @@ class SwiftStorageBasicDeployment(OpenStackAmuletDeployment):
 
         headers, objects = self.swift.get_container(container_name)
 
-        if len(objects) != 2:
+        if float(self.glance.version) < 2.0:
+            object_count = 1
+        else:
+            object_count = 2
+
+        if len(objects) != object_count:
             msg = "Expected 2 swift object, found {}".format(len(objects))
             amulet.raise_status(amulet.FAIL, msg=msg)
 
-        swift_object_size = objects[1].get('bytes')
-        swift_object_md5 = objects[1].get('hash')
+        swift_object_size = objects[object_count - 1].get('bytes')
+        swift_object_md5 = objects[object_count - 1].get('hash')
 
         if img_size != swift_object_size:
             msg = "Glance image size {} != swift object size {}".format(
