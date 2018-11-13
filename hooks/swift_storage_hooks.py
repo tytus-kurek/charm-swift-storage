@@ -76,7 +76,6 @@ from charmhelpers.core.hookenv import (
 from charmhelpers.fetch import (
     apt_install,
     apt_update,
-    add_source,
     filter_installed_packages
 )
 from charmhelpers.core.host import (
@@ -254,8 +253,6 @@ def install_vaultlocker():
         pkgs = ['vaultlocker', 'python-hvac']
         installed = len(filter_installed_packages(pkgs)) == 0
         if not installed:
-            add_source('ppa:openstack-charmers/vaultlocker')
-            apt_update(fatal=True)
             apt_install(pkgs, fatal=True)
 
 
