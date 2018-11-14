@@ -259,7 +259,7 @@ def install_vaultlocker():
             apt_install(pkgs, fatal=True)
 
 
-@hooks.hook('upgrade-charm')
+@hooks.hook('upgrade-charm.real')
 @harden()
 def upgrade_charm():
     initialize_ufw()

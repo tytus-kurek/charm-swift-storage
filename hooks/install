@@ -17,4 +17,5 @@ for dep in ${DEPS[@]}; do
     check_and_install ${PYTHON} ${dep}
 done
 
-exec ./hooks/install.real
+real_hook="./hooks/$(basename $0).real"
+exec $real_hook
