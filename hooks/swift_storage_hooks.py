@@ -24,6 +24,7 @@ import socket
 import subprocess
 import tempfile
 
+from subprocess import CalledProcessError
 
 _path = os.path.dirname(os.path.realpath(__file__))
 _root = os.path.abspath(os.path.join(_path, '..'))
@@ -71,6 +72,7 @@ from charmhelpers.core.hookenv import (
     status_set,
     ingress_address,
     DEBUG,
+    WARNING,
 )
 
 from charmhelpers.fetch import (
@@ -303,7 +305,16 @@ def swift_storage_relation_changed():
     CONFIGS.write('/etc/rsync-juju.d/050-swift-storage.conf')
     CONFIGS.write('/etc/swift/swift.conf')
 
-    fetch_swift_rings(rings_url)
+    # NOTE(hopem): retries are handled in the function but it is possible that
+    #              we are attempting to get rings from a proxy that is no
+    #              longer publiscising them so lets catch the error, log a
+    #              message and hope that the good rings_url us waiting to be
+    #              consumed.
+    try:
+        fetch_swift_rings(rings_url)
+    except CalledProcessError:
+        log("Failed to sync rings from {} - no longer available from that "
+            "unit?".format(rings_url), level=WARNING)
 
 
 @hooks.hook('swift-storage-relation-departed')
