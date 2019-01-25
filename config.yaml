@@ -206,3 +206,22 @@ options:
     description: |
       Encrypt block devices used by swift using dm-crypt, making use of
       vault for encryption key management; requires a relation to vault.
+  region:
+    default: 1
+    type: int
+    description: |
+      Swift storage region to request membership. Relevant only when the
+      swift-proxy charm has been configured with the "enable-multi-region=True"
+      option. This should be changed for every service unit
+  object-server-port-rep:
+    default: 6010
+    type: int
+    description: Listening port of the swift-object-replication-server.
+  container-server-port-rep:
+    default: 6011
+    type: int
+    description: Listening port of the swift-container-replication-server.
+  account-server-port-rep:
+    default: 6012
+    type: int
+    description: Listening port of the swift-account-replication-server.

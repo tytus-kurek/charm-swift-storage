@@ -274,10 +274,14 @@ def swift_storage_relation_joined(rid=None):
             level=DEBUG)
         return
     rel_settings = {
+        'region': config('region'),
         'zone': config('zone'),
         'object_port': config('object-server-port'),
+        'object_port_rep': config('object-server-port-rep')
         'container_port': config('container-server-port'),
+        'container_port_rep': config('container-server-port-rep'),
         'account_port': config('account-server-port'),
+        'account_port_rep': config('account-server-port-rep'),
     }
 
     db = kv()

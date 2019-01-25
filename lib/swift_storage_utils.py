@@ -107,29 +107,55 @@ REQUIRED_INTERFACES = {
 }
 
 ACCOUNT_SVCS = [
-    'swift-account', 'swift-account-auditor',
-    'swift-account-reaper', 'swift-account-replicator'
+    'swift-account',
+    'swift-account-auditor',
+    'swift-account-reaper'
+]
+
+ACCOUNT_SVCS_REP = [
+    'swift-account',
+    'swift-account-replicator'
 ]
 
 CONTAINER_SVCS = [
-    'swift-container', 'swift-container-auditor',
-    'swift-container-updater', 'swift-container-replicator',
+    'swift-container',
+    'swift-container-auditor',
+    'swift-container-updater',
     'swift-container-sync'
 ]
 
-OBJECT_SVCS = [
-    'swift-object', 'swift-object-auditor',
-    'swift-object-updater', 'swift-object-replicator'
+CONTAINER_SVCS_REP = [
+    'swift-container',
+    'swift-container-replicator'
 ]
 
-SWIFT_SVCS = ACCOUNT_SVCS + CONTAINER_SVCS + OBJECT_SVCS
+OBJECT_SVCS = [
+    'swift-object',
+    'swift-object-auditor',
+    'swift-object-updater'
+]
+
+OBJECT_SVCS_REP = [
+    'swift-object',
+    'swift-object-replicator'
+]
+
+SWIFT_SVCS = ACCOUNT_SVCS +
+             ACCOUNT_SVCS_REP +
+             CONTAINER_SVCS +
+             CONTAINER_SVCS_REP +
+             OBJECT_SVCS +
+             OBJECT_SVCS_REP
 
 RESTART_MAP = {
     '/etc/rsync-juju.d/050-swift-storage.conf': ['rsync'],
-    '/etc/swift/account-server.conf': ACCOUNT_SVCS,
-    '/etc/swift/container-server.conf': CONTAINER_SVCS,
-    '/etc/swift/object-server.conf': OBJECT_SVCS,
-    '/etc/swift/swift.conf': ACCOUNT_SVCS + CONTAINER_SVCS + OBJECT_SVCS
+    '/etc/swift/account-server/account-server-1.conf': ACCOUNT_SVCS,
+    '/etc/swift/account-server/account-server-2.conf': ACCOUNT_SVCS_REP,
+    '/etc/swift/container-server/container-server-1.conf': CONTAINER_SVCS,
+    '/etc/swift/container-server/container-server-2.conf': CONTAINER_SVCS_REP,
+    '/etc/swift/object-server/object-server-1.conf': OBJECT_SVCS,
+    '/etc/swift/object-server/object-server-2.conf': OBJECT_SVCS_REP,
+    '/etc/swift/swift.conf': SWIFT_SVCS
 }
 
 SWIFT_CONF_DIR = '/etc/swift'
