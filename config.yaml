@@ -229,5 +229,5 @@ options:
     default: ""
     type: string
     description: |
-      Additional networks or hosts that should be allowed access to
-      rsync services provided by Swift. This might come handy in multi.
+      Additional space delimited networks or hosts which should be allowed
+      access to rsync services provided by Swift.
