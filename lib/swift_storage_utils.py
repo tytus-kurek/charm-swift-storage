@@ -140,21 +140,21 @@ OBJECT_SVCS_REP = [
     'swift-object-replicator'
 ]
 
-SWIFT_SVCS = ACCOUNT_SVCS +
-             ACCOUNT_SVCS_REP +
-             CONTAINER_SVCS +
-             CONTAINER_SVCS_REP +
-             OBJECT_SVCS +
+SWIFT_SVCS = ACCOUNT_SVCS + \
+             ACCOUNT_SVCS_REP + \
+             CONTAINER_SVCS + \
+             CONTAINER_SVCS_REP + \
+             OBJECT_SVCS + \
              OBJECT_SVCS_REP
 
 RESTART_MAP = {
     '/etc/rsync-juju.d/050-swift-storage.conf': ['rsync'],
-    '/etc/swift/account-server/account-server-1.conf': ACCOUNT_SVCS,
-    '/etc/swift/account-server/account-server-2.conf': ACCOUNT_SVCS_REP,
-    '/etc/swift/container-server/container-server-1.conf': CONTAINER_SVCS,
-    '/etc/swift/container-server/container-server-2.conf': CONTAINER_SVCS_REP,
-    '/etc/swift/object-server/object-server-1.conf': OBJECT_SVCS,
-    '/etc/swift/object-server/object-server-2.conf': OBJECT_SVCS_REP,
+    '/etc/swift/account-server/account-server.conf': ACCOUNT_SVCS,
+    '/etc/swift/account-server/account-replicator-server.conf': ACCOUNT_SVCS_REP,
+    '/etc/swift/container-server/container-server.conf': CONTAINER_SVCS,
+    '/etc/swift/container-server/container-replicator-server.conf': CONTAINER_SVCS_REP,
+    '/etc/swift/object-server/object-server.conf': OBJECT_SVCS,
+    '/etc/swift/object-server/object-replicator-server.conf': OBJECT_SVCS_REP,
     '/etc/swift/swift.conf': SWIFT_SVCS
 }
 
@@ -197,7 +197,12 @@ def register_configs():
     configs.register('/etc/rsync-juju.d/050-swift-storage.conf',
                      [RsyncContext(), SwiftStorageServerContext()])
     # NOTE: add VaultKVContext so interface status can be assessed
-    for server in ['account', 'object', 'container']:
+    for server in ['account',
+                   'account-replicator',
+                   'object',
+                   'object-replicator',
+                   'container',
+                   'container-replicator']:
         configs.register('/etc/swift/%s-server.conf' % server,
                          [SwiftStorageServerContext(),
                           context.BindHostContext(),
