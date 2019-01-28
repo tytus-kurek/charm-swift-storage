@@ -22,6 +22,9 @@ series:
   - bionic
   - cosmic
   - trusty
+extra-bindings:
+  replication:
+  cluster:
 provides:
   nrpe-external-master:
     interface: nrpe-external-master

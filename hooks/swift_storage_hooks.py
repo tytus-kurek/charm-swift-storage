@@ -65,6 +65,7 @@ from charmhelpers.core.hookenv import (
     Hooks, UnregisteredHookError,
     config,
     log,
+    network_get,
     relation_get,
     relation_ids,
     relation_set,
@@ -273,7 +274,11 @@ def swift_storage_relation_joined(rid=None):
         log('Encryption configured and vault not ready, deferring',
             level=DEBUG)
         return
+    replication_ip = network_get('replication')
+    cluster_ip = network_get('cluster')
     rel_settings = {
+        'replication_ip': replication_ip,
+        'cluster_ip': cluster_ip,
         'region': config('region'),
         'zone': config('zone'),
         'object_port': config('object-server-port'),
