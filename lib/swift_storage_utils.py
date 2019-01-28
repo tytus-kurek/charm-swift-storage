@@ -113,7 +113,6 @@ ACCOUNT_SVCS = [
 ]
 
 ACCOUNT_SVCS_REP = [
-    'swift-account',
     'swift-account-replicator'
 ]
 
@@ -125,7 +124,6 @@ CONTAINER_SVCS = [
 ]
 
 CONTAINER_SVCS_REP = [
-    'swift-container',
     'swift-container-replicator'
 ]
 
@@ -136,7 +134,6 @@ OBJECT_SVCS = [
 ]
 
 OBJECT_SVCS_REP = [
-    'swift-object',
     'swift-object-replicator'
 ]
 
@@ -149,16 +146,19 @@ SWIFT_SVCS = ACCOUNT_SVCS + \
 
 RESTART_MAP = {
     '/etc/rsync-juju.d/050-swift-storage.conf': ['rsync'],
-    '/etc/swift/account-server/account-server.conf': ACCOUNT_SVCS,
-    '/etc/swift/account-server/account-replicator-server.conf': ACCOUNT_SVCS_REP,
-    '/etc/swift/container-server/container-server.conf': CONTAINER_SVCS,
-    '/etc/swift/container-server/container-replicator-server.conf': CONTAINER_SVCS_REP,
-    '/etc/swift/object-server/object-server.conf': OBJECT_SVCS,
-    '/etc/swift/object-server/object-replicator-server.conf': OBJECT_SVCS_REP,
+    '/etc/swift/account-server/1.conf': ACCOUNT_SVCS,
+    '/etc/swift/account-server/2.conf': ACCOUNT_SVCS_REP,
+    '/etc/swift/container-server/1.conf': CONTAINER_SVCS,
+    '/etc/swift/container-server/2.conf': CONTAINER_SVCS_REP,
+    '/etc/swift/object-server/1.conf': OBJECT_SVCS,
+    '/etc/swift/object-server/2.conf': OBJECT_SVCS_REP,
     '/etc/swift/swift.conf': SWIFT_SVCS
 }
 
 SWIFT_CONF_DIR = '/etc/swift'
+SWIFT_ACCOUNT_CONF_DIR = os.path.join(SWIFT_CONF_DIR, 'account-server')
+SWIFT_CONTAINER_CONF_DIR = os.path.join(SWIFT_CONF_DIR, 'container-server')
+SWIFT_OBJECT_CONF_DIR = os.path.join(SWIFT_CONF_DIR, 'object-server')
 SWIFT_RING_EXT = 'ring.gz'
 
 FIRST = 1
@@ -181,6 +181,9 @@ def ensure_swift_directories():
     '''
     dirs = [
         SWIFT_CONF_DIR,
+        SWIFT_ACCOUNT_CONF_DIR,
+        SWIFT_CONTAINER_CONF_DIR,
+        SWIFT_OBJECT_CONF_DIR,
         '/var/cache/swift',
         '/srv/node',
     ]
@@ -197,13 +200,15 @@ def register_configs():
     configs.register('/etc/rsync-juju.d/050-swift-storage.conf',
                      [RsyncContext(), SwiftStorageServerContext()])
     # NOTE: add VaultKVContext so interface status can be assessed
-    for server in ['account',
-                   'account-replicator',
-                   'object',
-                   'object-replicator',
-                   'container',
-                   'container-replicator']:
-        configs.register('/etc/swift/%s-server.conf' % server,
+    for server in ['account', 'container', 'object']:
+        configs.register('/etc/swift/%s-server/1.conf' % server,
+                         [SwiftStorageServerContext(),
+                          context.BindHostContext(),
+                          context.WorkerConfigContext(),
+                          vaultlocker.VaultKVContext(
+                              vaultlocker.VAULTLOCKER_BACKEND)]),
+    for server in ['account', 'container', 'object']:
+        configs.register('/etc/swift/%s-server/2.conf' % server,
                          [SwiftStorageServerContext(),
                           context.BindHostContext(),
                           context.WorkerConfigContext(),
