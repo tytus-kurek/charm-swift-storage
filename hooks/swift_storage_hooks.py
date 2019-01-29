@@ -57,6 +57,7 @@ from lib.swift_storage_utils import (
     VERSION_PACKAGE,
     setup_ufw,
     revoke_access,
+    remove_default_configuration_files,
 )
 
 from lib.misc_utils import pause_aware_restart_on_change
@@ -236,6 +237,8 @@ def config_changed():
     install_vaultlocker()
 
     configure_storage()
+
+    remove_default_configuration_files()
 
     CONFIGS.write_all()
 

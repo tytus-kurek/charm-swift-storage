@@ -217,6 +217,13 @@ def register_configs():
     return configs
 
 
+def remove_default_configuration_files():
+    for file in [os.path.join(SWIFT_CONF_DIR, 'account-server.conf'),
+                 os.path.join(SWIFT_CONF_DIR, 'container-server.conf'),
+                 os.path.join(SWIFT_CONF_DIR, 'object-server.conf')]:
+        os.remove(file)
+
+
 def swift_init(target, action, fatal=False):
     '''
     Call swift-init on a specific target with given action, potentially
