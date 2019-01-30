@@ -208,6 +208,7 @@ def install():
     apt_install(PACKAGES, fatal=True)
     initialize_ufw()
     ensure_swift_directories()
+    remove_default_configuration_files()
 
 
 @hooks.hook('config-changed')
@@ -237,8 +238,6 @@ def config_changed():
     install_vaultlocker()
 
     configure_storage()
-
-    remove_default_configuration_files()
 
     CONFIGS.write_all()
 
