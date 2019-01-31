@@ -131,6 +131,7 @@ CONTAINER_SVCS_REP = [
 OBJECT_SVCS = [
     'swift-object',
     'swift-object-auditor',
+    'swift-object-reconstructor',
     'swift-object-updater'
 ]
 
@@ -219,6 +220,16 @@ def register_configs():
 
 
 def adjust_default_configuration_files():
+    service_management_systems = {
+        'upstart': {
+            'config_dir': '/etc/init',
+            'filename_suffix': '.conf'
+        },
+        'sysvinit': {
+            'config_dir': '/etc/init.d',
+            'filename_suffix': ''
+        }
+    }
     swift_init('all', 'stop')
     for file in [os.path.join(SWIFT_CONF_DIR, 'account-server.conf'),
                  os.path.join(SWIFT_CONF_DIR, 'container-server.conf'),
@@ -231,84 +242,27 @@ def adjust_default_configuration_files():
                  os.path.join(SWIFT_OBJECT_CONF_DIR, '1.conf'),
                  os.path.join(SWIFT_OBJECT_CONF_DIR, '2.conf')]:
         os.mknod(file)
-    for service in ACCOUNT_SVCS:
-        config_file = os.path.join('/etc/init.d', service)
-        old_file = os.path.join(SWIFT_CONF_DIR, 'account-server.conf')
-        new_file = os.path.join(SWIFT_ACCOUNT_CONF_DIR, '1.conf')
-        for line in fileinput.input(config_file, inplace=True):
-            print(line.replace(old_file, new_file)),
-    for service in ACCOUNT_SVCS_REP:
-        config_file = os.path.join('/etc/init.d', service)
-        old_file = os.path.join(SWIFT_CONF_DIR, 'account-server.conf')
-        new_file = os.path.join(SWIFT_ACCOUNT_CONF_DIR, '2.conf')
-        for line in fileinput.input(config_file, inplace=True):
-            print(line.replace(old_file, new_file)),
-    for service in CONTAINER_SVCS:
-        config_file = os.path.join('/etc/init.d', service)
-        old_file = os.path.join(SWIFT_CONF_DIR, 'container-server.conf')
-        new_file = os.path.join(SWIFT_CONTAINER_CONF_DIR, '1.conf')
-        for line in fileinput.input(config_file, inplace=True):
-            print(line.replace(old_file, new_file)),
-    for service in CONTAINER_SVCS_REP:
-        config_file = os.path.join('/etc/init.d', service)
-        old_file = os.path.join(SWIFT_CONF_DIR, 'container-server.conf')
-        new_file = os.path.join(SWIFT_CONTAINER_CONF_DIR, '2.conf')
-        for line in fileinput.input(config_file, inplace=True):
-            print(line.replace(old_file, new_file)),
-    for service in OBJECT_SVCS:
-        config_file = os.path.join('/etc/init.d', service)
-        old_file = os.path.join(SWIFT_CONF_DIR, 'object-server.conf')
-        new_file = os.path.join(SWIFT_OBJECT_CONF_DIR, '1.conf')
-        for line in fileinput.input(config_file, inplace=True):
-            print(line.replace(old_file, new_file)),
-    for service in OBJECT_SVCS_REP:
-        config_file = os.path.join('/etc/init.d', service)
-        old_file = os.path.join(SWIFT_CONF_DIR, 'object-server.conf')
-        new_file = os.path.join(SWIFT_OBJECT_CONF_DIR, '2.conf')
-        for line in fileinput.input(config_file, inplace=True):
-            print(line.replace(old_file, new_file))
-    for service in ACCOUNT_SVCS:
-        filename = service + '.conf'
-        config_file = os.path.join('/etc/init', filename)
-        old_file = os.path.join(SWIFT_CONF_DIR, 'account-server.conf')
-        new_file = os.path.join(SWIFT_ACCOUNT_CONF_DIR, '1.conf')
-        for line in fileinput.input(config_file, inplace=True):
-            print(line.replace(old_file, new_file)),
-    for service in ACCOUNT_SVCS_REP:
-        filename = service + '.conf'
-        config_file = os.path.join('/etc/init', filename)
-        old_file = os.path.join(SWIFT_CONF_DIR, 'account-server.conf')
-        new_file = os.path.join(SWIFT_ACCOUNT_CONF_DIR, '2.conf')
-        for line in fileinput.input(config_file, inplace=True):
-            print(line.replace(old_file, new_file)),
-    for service in CONTAINER_SVCS:
-        filename = service + '.conf'
-        config_file = os.path.join('/etc/init', filename)
-        old_file = os.path.join(SWIFT_CONF_DIR, 'container-server.conf')
-        new_file = os.path.join(SWIFT_CONTAINER_CONF_DIR, '1.conf')
-        for line in fileinput.input(config_file, inplace=True):
-            print(line.replace(old_file, new_file)),
-    for service in CONTAINER_SVCS_REP:
-        filename = service + '.conf'
-        config_file = os.path.join('/etc/init', filename)
-        old_file = os.path.join(SWIFT_CONF_DIR, 'container-server.conf')
-        new_file = os.path.join(SWIFT_CONTAINER_CONF_DIR, '2.conf')
-        for line in fileinput.input(config_file, inplace=True):
-            print(line.replace(old_file, new_file)),
-    for service in OBJECT_SVCS:
-        filename = service + '.conf'
-        config_file = os.path.join('/etc/init', filename)
-        old_file = os.path.join(SWIFT_CONF_DIR, 'object-server.conf')
-        new_file = os.path.join(SWIFT_OBJECT_CONF_DIR, '1.conf')
-        for line in fileinput.input(config_file, inplace=True):
-            print(line.replace(old_file, new_file)),
-    for service in OBJECT_SVCS_REP:
-        filename = service + '.conf'
-        config_file = os.path.join('/etc/init', filename)
-        old_file = os.path.join(SWIFT_CONF_DIR, 'object-server.conf')
-        new_file = os.path.join(SWIFT_OBJECT_CONF_DIR, '2.conf')
-        for line in fileinput.input(config_file, inplace=True):
-            print(line.replace(old_file, new_file)),
+    for service in SWIFT_SVCS:
+        for system, attrs in service_management_systems.items():
+            filename = service + attrs['filename_suffix']
+            config_file = os.path.join(attrs['config_dir'], filename)
+            if 'account' in service:
+                old_filename = 'account-server.conf'
+                new_conf_dir = SWIFT_ACCOUNT_CONF_DIR
+            elif 'container' in service:
+                old_filename = 'container-server.conf'
+                new_conf_dir = SWIFT_CONTAINER_CONF_DIR
+            elif 'object' in service:
+                old_filename = 'object-server.conf'
+                new_conf_dir = SWIFT_OBJECT_CONF_DIR
+            if 'replicator' in service:
+                new_filename = '2.conf'
+            else:
+                new_filename = '1.conf'
+            old_file = os.path.join(SWIFT_CONF_DIR, old_filename)
+            new_file = os.path.join(new_conf_dir, new_filename)
+            for line in fileinput.input(config_file, inplace=True):
+                print(line.replace(old_file, new_file), end='')
     check_call(['systemctl', 'daemon-reload'])
 
 
