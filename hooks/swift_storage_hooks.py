@@ -57,7 +57,7 @@ from lib.swift_storage_utils import (
     VERSION_PACKAGE,
     setup_ufw,
     revoke_access,
-    remove_default_configuration_files,
+    adjust_default_configuration_files,
 )
 
 from lib.misc_utils import pause_aware_restart_on_change
@@ -208,7 +208,7 @@ def install():
     apt_install(PACKAGES, fatal=True)
     initialize_ufw()
     ensure_swift_directories()
-    remove_default_configuration_files()
+    adjust_default_configuration_files()
 
 
 @hooks.hook('config-changed')

@@ -1,2 +1,0 @@
-1) Swift services are not started after an initial deployment and have to be
-manually started by executing the 'swift-init all start' command.
