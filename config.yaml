@@ -225,9 +225,3 @@ options:
     default: 6012
     type: int
     description: Listening port of the swift-account-replication-server.
-  custom-hosts-allow:
-    default: ""
-    type: string
-    description: |
-      Additional space delimited networks or hosts which should be allowed
-      access to rsync services provided by Swift.
