@@ -206,3 +206,9 @@ options:
     description: |
       Encrypt block devices used by swift using dm-crypt, making use of
       vault for encryption key management; requires a relation to vault.
+  custom-hosts-allow:
+    default: ""
+    type: string
+    description: |
+      Additional space delimited networks or hosts which should be allowed
+      access to rsync services provided by Swift.
