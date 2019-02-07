@@ -251,6 +251,9 @@ def config_changed():
 
     add_to_updatedb_prunepath(STORAGE_MOUNT_PATH)
 
+    if config('custom-allowed-hosts'):
+        setup_ufw()
+
 
 def install_vaultlocker():
     """Determine whether vaultlocker is required and install"""

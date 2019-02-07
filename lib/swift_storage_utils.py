@@ -241,7 +241,7 @@ def adjust_default_configuration_files():
                  os.path.join(SWIFT_CONTAINER_CONF_DIR, '2.conf'),
                  os.path.join(SWIFT_OBJECT_CONF_DIR, '1.conf'),
                  os.path.join(SWIFT_OBJECT_CONF_DIR, '2.conf')]:
-        os.mknod(file)
+        os.mknod(file, '0644|stat.S_IRUSR')
     for service in SWIFT_SVCS:
         for system, attrs in service_management_systems.items():
             filename = service + attrs['filename_suffix']
@@ -779,12 +779,17 @@ def setup_ufw():
              config('container-server-port'),
              config('account-server-port')]
 
+    custom_allowed_hosts = config('custom-allowed-hosts').split(',')
+
     # Storage peers
     allowed_hosts = RsyncContext()().get('allowed_hosts', '').split(' ')
 
     # Storage clients (swift-proxy)
     allowed_hosts += [get_host_ip(ingress_address(rid=u.rid, unit=u.unit))
                       for u in iter_units_for_relation_name('swift-storage')]
+
+    # Custom storage clients (i.e. swift-proxy in slave mode)
+    allowed_hosts += custom_allowed_hosts
 
     # Grant access for peers and clients
     for host in allowed_hosts:
