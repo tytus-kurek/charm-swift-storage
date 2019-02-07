@@ -241,7 +241,7 @@ def adjust_default_configuration_files():
                  os.path.join(SWIFT_CONTAINER_CONF_DIR, '2.conf'),
                  os.path.join(SWIFT_OBJECT_CONF_DIR, '1.conf'),
                  os.path.join(SWIFT_OBJECT_CONF_DIR, '2.conf')]:
-        os.mknod(file, '0644|stat.S_IRUSR')
+        os.mknod(file, mode=0o644)
     for service in SWIFT_SVCS:
         for system, attrs in service_management_systems.items():
             filename = service + attrs['filename_suffix']
