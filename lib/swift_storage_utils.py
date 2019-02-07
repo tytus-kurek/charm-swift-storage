@@ -788,9 +788,6 @@ def setup_ufw():
     allowed_hosts += [get_host_ip(ingress_address(rid=u.rid, unit=u.unit))
                       for u in iter_units_for_relation_name('swift-storage')]
 
-    # Custom storage clients (i.e. swift-proxy in slave mode)
-    allowed_hosts += custom_allowed_hosts
-
     # Grant access for peers and clients
     for host in allowed_hosts:
         for port in ports:

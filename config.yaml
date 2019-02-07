@@ -225,10 +225,3 @@ options:
     default: 6012
     type: int
     description: Listening port of the swift-account-replication-server.
-  custom-allowed-hosts:
-    default: ''
-    type: string
-    description: |
-      Comma-separated list of IP addresses of custom swift-storage clients
-      (i.e. swift-proxy in slave mode) which should have access to the swift
-      daemons.
