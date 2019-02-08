@@ -779,8 +779,6 @@ def setup_ufw():
              config('container-server-port'),
              config('account-server-port')]
 
-    custom_allowed_hosts = config('custom-allowed-hosts').split(',')
-
     # Storage peers
     allowed_hosts = RsyncContext()().get('allowed_hosts', '').split(' ')
 
