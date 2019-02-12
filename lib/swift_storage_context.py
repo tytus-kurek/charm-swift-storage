@@ -65,8 +65,7 @@ class RsyncContext(OSContextGenerator):
             for unit in related_units(rid):
                 settings = relation_get(unit=unit, rid=rid)
                 ts = settings.get('timestamp')
-                allowed_hosts = '127.0.1.1 ' + \
-                                settings.get('rsync_allowed_hosts')
+                allowed_hosts = settings.get('rsync_allowed_hosts')
                 if allowed_hosts and ts:
                     if not timestamps or ts > max(timestamps):
                         ctxt['allowed_hosts'] = allowed_hosts
