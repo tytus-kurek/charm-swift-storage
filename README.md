@@ -32,6 +32,13 @@ If the swift-proxy charm is configured for manual zone assignment (recommended),
 the 'zone' option should be set for each swift-storage service being deployed.
 See the swift-proxy README for more information about zone assignment.
 
+**Region assignment**
+
+If the swift-proxy charm is configured with a support for the Swift Global
+Cluster feature, the 'region' option should be set for each swift-storage
+service being deployed. See the swift-proxy README for more information about
+the Swift Global Cluster feature.
+
 **Storage**
 
 Swift storage nodes require access to local storage and filesystem.  The charm

@@ -35,6 +35,7 @@ TO_PATCH = [
     'Hooks',
     'config',
     'log',
+    'network_get_primary_address',
     'relation_set',
     'relation_ids',
     'relation_get',
@@ -101,7 +102,9 @@ class SwiftStorageRelationsTests(CharmTestCase):
         self.add_to_updatedb_prunepath.assert_called_with("/srv/node")
 
     @patch.object(hooks, 'add_ufw_gre_rule', lambda *args: None)
-    def test_install_hook(self):
+    @patch('lib.swift_storage_utils.swift_init')
+    def test_install_hook(self, mock_swift_init):
+        mock_swift_init.return_value = 0
         self.test_config.set('openstack-origin', 'cloud:precise-havana')
         hooks.install()
         self.configure_installation_source.assert_called_with(
@@ -197,6 +200,7 @@ class SwiftStorageRelationsTests(CharmTestCase):
         kvstore.__enter__.return_value = kvstore
         kvstore.get.return_value = None
         self.test_kv.set('prepared-devices', ['/dev/vdb'])
+        self.network_get_primary_address.return_value = "10.10.10.2"
 
         # py3 is very picky, and log is only patched in
         # hooks.swift_storage_hooks
@@ -208,12 +212,18 @@ class SwiftStorageRelationsTests(CharmTestCase):
         mock_rel_set.assert_called_with(
             relation_id=None,
             relation_settings={
-                "device": 'vdb',
-                "object_port": 6000,
-                "account_port": 6002,
+                "ip_cls": "10.10.10.2",
+                "ip_rep": "10.10.10.2",
+                "private-address": "10.10.10.2",
+                "region": 1,
                 "zone": 1,
+                "device": 'vdb',
+                "account_port": 6002,
+                "account_port_rep": 6012,
                 "container_port": 6001,
-                "private-address": "10.10.10.2"
+                "container_port_rep": 6011,
+                "object_port": 6000,
+                "object_port_rep": 6010
             }
         )
 

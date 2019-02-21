@@ -57,6 +57,7 @@ from lib.swift_storage_utils import (
     VERSION_PACKAGE,
     setup_ufw,
     revoke_access,
+    adjust_default_configuration_files,
 )
 
 from lib.misc_utils import pause_aware_restart_on_change
@@ -65,6 +66,7 @@ from charmhelpers.core.hookenv import (
     Hooks, UnregisteredHookError,
     config,
     log,
+    network_get_primary_address,
     relation_get,
     relation_ids,
     relation_set,
@@ -206,6 +208,7 @@ def install():
     apt_install(PACKAGES, fatal=True)
     initialize_ufw()
     ensure_swift_directories()
+    adjust_default_configuration_files()
 
 
 @hooks.hook('config-changed')
@@ -273,11 +276,19 @@ def swift_storage_relation_joined(rid=None):
         log('Encryption configured and vault not ready, deferring',
             level=DEBUG)
         return
+    replication_ip = network_get_primary_address('replication')
+    cluster_ip = network_get_primary_address('cluster')
     rel_settings = {
+        'ip_rep': replication_ip,
+        'ip_cls': cluster_ip,
+        'region': config('region'),
         'zone': config('zone'),
         'object_port': config('object-server-port'),
+        'object_port_rep': config('object-server-port-rep'),
         'container_port': config('container-server-port'),
+        'container_port_rep': config('container-server-port-rep'),
         'account_port': config('account-server-port'),
+        'account_port_rep': config('account-server-port-rep'),
     }
 
     db = kv()

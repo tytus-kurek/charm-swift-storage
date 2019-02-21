@@ -121,6 +121,13 @@ class SwiftStorageUtilsTests(CharmTestCase):
             swift_utils.ensure_swift_directories()
             ex_dirs = [
                 call('/etc/swift', owner='swift', group='swift'),
+                call('/etc/swift/account-server',
+                     owner='swift',
+                     group='swift'),
+                call('/etc/swift/container-server',
+                     owner='swift',
+                     group='swift'),
+                call('/etc/swift/object-server', owner='swift', group='swift'),
                 call('/var/cache/swift', owner='swift', group='swift'),
                 call('/srv/node', owner='swift', group='swift')
             ]
@@ -452,20 +459,56 @@ class SwiftStorageUtilsTests(CharmTestCase):
             call('/etc/swift/swift.conf', ['swift_server_context']),
             call('/etc/rsync-juju.d/050-swift-storage.conf',
                  ['rsync_context', 'swift_context']),
-            call('/etc/swift/account-server.conf', ['swift_context',
+            call('/etc/swift/account-server/1.conf', ['swift_context',
                                                     'bind_host_context',
                                                     'worker_context',
                                                     'vl_context']),
-            call('/etc/swift/object-server.conf', ['swift_context',
+            call('/etc/swift/container-server/1.conf', ['swift_context',
+                                                      'bind_host_context',
+                                                      'worker_context',
+                                                      'vl_context']),
+            call('/etc/swift/object-server/1.conf', ['swift_context',
                                                    'bind_host_context',
                                                    'worker_context',
                                                    'vl_context']),
-            call('/etc/swift/container-server.conf', ['swift_context',
+            call('/etc/swift/account-server/2.conf', ['swift_context',
+                                                    'bind_host_context',
+                                                    'worker_context',
+                                                    'vl_context']),
+            call('/etc/swift/container-server/2.conf', ['swift_context',
                                                       'bind_host_context',
                                                       'worker_context',
-                                                      'vl_context'])
+                                                      'vl_context']),
+            call('/etc/swift/object-server/2.conf', ['swift_context',
+                                                   'bind_host_context',
+                                                   'worker_context',
+                                                   'vl_context'])
         ]
         self.assertEqual(ex, configs.register.call_args_list)
+
+    @patch.object(swift_utils.os.path, "isfile")
+    @patch.object(swift_utils.os.path, "isdir")
+    def test_adjust_default_configuration_files(self, mock_isfile, mock_isdir):
+        calls = [call(['rm', '/etc/swift/account-server.conf']),
+                 call(['rm', '/etc/swift/container-server.conf']),
+                 call(['rm', '/etc/swift/object-server.conf']),
+                 call(['touch', '/etc/swift/account-server/1.conf']),
+                 call(['chmod', '0644', '/etc/swift/account-server/1.conf']),
+                 call(['touch', '/etc/swift/account-server/2.conf']),
+                 call(['chmod', '0644', '/etc/swift/account-server/2.conf']),
+                 call(['touch', '/etc/swift/container-server/1.conf']),
+                 call(['chmod', '0644', '/etc/swift/container-server/1.conf']),
+                 call(['touch', '/etc/swift/container-server/2.conf']),
+                 call(['chmod', '0644', '/etc/swift/container-server/2.conf']),
+                 call(['touch', '/etc/swift/object-server/1.conf']),
+                 call(['chmod', '0644', '/etc/swift/object-server/1.conf']),
+                 call(['touch', '/etc/swift/object-server/2.conf']),
+                 call(['chmod', '0644', '/etc/swift/object-server/2.conf']),
+                 call(['systemctl', 'daemon-reload'])]
+        mock_isfile.return_value = True
+        mock_isdir.return_value = True
+        swift_utils.adjust_default_configuration_files()
+        self.check_call.assert_has_calls(calls)
 
     def test_do_upgrade(self):
         self.is_paused.return_value = False

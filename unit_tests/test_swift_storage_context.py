@@ -84,8 +84,11 @@ class SwiftStorageContextTests(CharmTestCase):
     def test_swift_storage_server_context(self):
         self.unit_private_ip.return_value = '10.0.0.5'
         self.test_config.set('account-server-port', '500')
+        self.test_config.set('account-server-port-rep', '510')
         self.test_config.set('object-server-port', '501')
+        self.test_config.set('object-server-port-rep', '511')
         self.test_config.set('container-server-port', '502')
+        self.test_config.set('container-server-port-rep', '512')
         self.test_config.set('object-server-threads-per-disk', '3')
         self.test_config.set('object-replicator-concurrency', '3')
         self.test_config.set('account-max-connections', '10')
@@ -96,8 +99,11 @@ class SwiftStorageContextTests(CharmTestCase):
         result = ctxt()
         ex = {
             'container_server_port': '502',
+            'container_server_port_rep': '512',
             'object_server_port': '501',
+            'object_server_port_rep': '511',
             'account_server_port': '500',
+            'account_server_port_rep': '510',
             'local_ip': '10.0.0.5',
             'object_server_threads_per_disk': '3',
             'object_replicator_concurrency': '3',

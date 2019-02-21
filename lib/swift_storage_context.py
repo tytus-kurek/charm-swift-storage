@@ -83,8 +83,11 @@ class SwiftStorageServerContext(OSContextGenerator):
         ctxt = {
             'local_ip': unit_private_ip(),
             'account_server_port': config('account-server-port'),
+            'account_server_port_rep': config('account-server-port-rep'),
             'container_server_port': config('container-server-port'),
+            'container_server_port_rep': config('container-server-port-rep'),
             'object_server_port': config('object-server-port'),
+            'object_server_port_rep': config('object-server-port-rep'),
             'object_server_threads_per_disk': config(
                 'object-server-threads-per-disk'),
             'account_max_connections': config('account-max-connections'),

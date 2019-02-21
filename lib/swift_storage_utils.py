@@ -1,3 +1,4 @@
+import fileinput
 import json
 import os
 import re
@@ -107,32 +108,51 @@ REQUIRED_INTERFACES = {
 }
 
 ACCOUNT_SVCS = [
-    'swift-account', 'swift-account-auditor',
-    'swift-account-reaper', 'swift-account-replicator'
+    'swift-account', 'swift-account-auditor', 'swift-account-reaper'
+]
+
+ACCOUNT_SVCS_REP = [
+    'swift-account-replicator'
 ]
 
 CONTAINER_SVCS = [
-    'swift-container', 'swift-container-auditor',
-    'swift-container-updater', 'swift-container-replicator',
+    'swift-container', 'swift-container-auditor', 'swift-container-updater',
     'swift-container-sync'
 ]
 
-OBJECT_SVCS = [
-    'swift-object', 'swift-object-auditor',
-    'swift-object-updater', 'swift-object-replicator'
+CONTAINER_SVCS_REP = [
+    'swift-container-replicator'
 ]
 
-SWIFT_SVCS = ACCOUNT_SVCS + CONTAINER_SVCS + OBJECT_SVCS
+OBJECT_SVCS = [
+    'swift-object', 'swift-object-auditor', 'swift-object-reconstructor',
+    'swift-object-updater'
+]
+
+OBJECT_SVCS_REP = [
+    'swift-object-replicator'
+]
+
+SWIFT_SVCS = (
+    ACCOUNT_SVCS + ACCOUNT_SVCS_REP + CONTAINER_SVCS + CONTAINER_SVCS_REP +
+    OBJECT_SVCS + OBJECT_SVCS_REP
+)
 
 RESTART_MAP = {
     '/etc/rsync-juju.d/050-swift-storage.conf': ['rsync'],
-    '/etc/swift/account-server.conf': ACCOUNT_SVCS,
-    '/etc/swift/container-server.conf': CONTAINER_SVCS,
-    '/etc/swift/object-server.conf': OBJECT_SVCS,
-    '/etc/swift/swift.conf': ACCOUNT_SVCS + CONTAINER_SVCS + OBJECT_SVCS
+    '/etc/swift/account-server/1.conf': ACCOUNT_SVCS,
+    '/etc/swift/account-server/2.conf': ACCOUNT_SVCS_REP,
+    '/etc/swift/container-server/1.conf': CONTAINER_SVCS,
+    '/etc/swift/container-server/2.conf': CONTAINER_SVCS_REP,
+    '/etc/swift/object-server/1.conf': OBJECT_SVCS,
+    '/etc/swift/object-server/2.conf': OBJECT_SVCS_REP,
+    '/etc/swift/swift.conf': SWIFT_SVCS
 }
 
 SWIFT_CONF_DIR = '/etc/swift'
+SWIFT_ACCOUNT_CONF_DIR = os.path.join(SWIFT_CONF_DIR, 'account-server')
+SWIFT_CONTAINER_CONF_DIR = os.path.join(SWIFT_CONF_DIR, 'container-server')
+SWIFT_OBJECT_CONF_DIR = os.path.join(SWIFT_CONF_DIR, 'object-server')
 SWIFT_RING_EXT = 'ring.gz'
 
 FIRST = 1
@@ -155,6 +175,9 @@ def ensure_swift_directories():
     '''
     dirs = [
         SWIFT_CONF_DIR,
+        SWIFT_ACCOUNT_CONF_DIR,
+        SWIFT_CONTAINER_CONF_DIR,
+        SWIFT_OBJECT_CONF_DIR,
         '/var/cache/swift',
         '/srv/node',
     ]
@@ -171,14 +194,94 @@ def register_configs():
     configs.register('/etc/rsync-juju.d/050-swift-storage.conf',
                      [RsyncContext(), SwiftStorageServerContext()])
     # NOTE: add VaultKVContext so interface status can be assessed
-    for server in ['account', 'object', 'container']:
-        configs.register('/etc/swift/%s-server.conf' % server,
+    for server in ['account', 'container', 'object']:
+        configs.register('/etc/swift/%s-server/1.conf' % server,
+                         [SwiftStorageServerContext(),
+                          context.BindHostContext(),
+                          context.WorkerConfigContext(),
+                          vaultlocker.VaultKVContext(
+                              vaultlocker.VAULTLOCKER_BACKEND)]),
+    for server in ['account', 'container', 'object']:
+        configs.register('/etc/swift/%s-server/2.conf' % server,
                          [SwiftStorageServerContext(),
                           context.BindHostContext(),
                           context.WorkerConfigContext(),
                           vaultlocker.VaultKVContext(
                               vaultlocker.VAULTLOCKER_BACKEND)]),
     return configs
+
+
+def adjust_default_configuration_files():
+    """ Adjusts default configuration files for storage nodes (lp1815879)
+
+    Removes default configuration files and creates the following:
+
+    /etc/swift/account-server/2.conf    # account-replicator service
+    /etc/swift/account-server/1.conf    # remaining account services
+    /etc/swift/container-server/2.conf  # container-replicator service
+    /etc/swift/container-server/1.conf  # remaining container services
+    /etc/swift/object-server/2.conf     # object-replicator service
+    /etc/swift/object-server/1.conf     # remaining object services
+
+    :raises: FileNotFoundError
+    """
+    service_management_systems = {
+        'upstart': {
+            'config_dir': '/etc/init',
+            'filename_suffix': '.conf'
+        },
+        'sysvinit': {
+            'config_dir': '/etc/init.d',
+            'filename_suffix': ''
+        }
+    }
+    swift_init('all', 'stop')
+    for file in [os.path.join(SWIFT_CONF_DIR, 'account-server.conf'),
+                 os.path.join(SWIFT_CONF_DIR, 'container-server.conf'),
+                 os.path.join(SWIFT_CONF_DIR, 'object-server.conf')]:
+        if os.path.isfile(file):
+            check_call(['rm', file])
+        else:
+            log("{} does not exists, skipping.".format(file), level=DEBUG)
+    for file in [os.path.join(SWIFT_ACCOUNT_CONF_DIR, '1.conf'),
+                 os.path.join(SWIFT_ACCOUNT_CONF_DIR, '2.conf'),
+                 os.path.join(SWIFT_CONTAINER_CONF_DIR, '1.conf'),
+                 os.path.join(SWIFT_CONTAINER_CONF_DIR, '2.conf'),
+                 os.path.join(SWIFT_OBJECT_CONF_DIR, '1.conf'),
+                 os.path.join(SWIFT_OBJECT_CONF_DIR, '2.conf')]:
+        if (os.path.isdir(SWIFT_ACCOUNT_CONF_DIR) and
+                os.path.isdir(SWIFT_CONTAINER_CONF_DIR) and
+                os.path.isdir(SWIFT_OBJECT_CONF_DIR)):
+            check_call(['touch', file])
+            check_call(['chmod', '0644', file])
+        else:
+            log("Cannot create {} file. Directory does not exist".format(file),
+                level=DEBUG)
+    for service in SWIFT_SVCS:
+        for system, attrs in service_management_systems.items():
+            filename = service + attrs['filename_suffix']
+            config_file = os.path.join(attrs['config_dir'], filename)
+            if 'account' in service:
+                old_filename = 'account-server.conf'
+                new_conf_dir = SWIFT_ACCOUNT_CONF_DIR
+            elif 'container' in service:
+                old_filename = 'container-server.conf'
+                new_conf_dir = SWIFT_CONTAINER_CONF_DIR
+            elif 'object' in service:
+                old_filename = 'object-server.conf'
+                new_conf_dir = SWIFT_OBJECT_CONF_DIR
+            if 'replicator' in service:
+                new_filename = '2.conf'
+            else:
+                new_filename = '1.conf'
+            old_file = os.path.join(SWIFT_CONF_DIR, old_filename)
+            new_file = os.path.join(new_conf_dir, new_filename)
+            try:
+                for line in fileinput.input(config_file, inplace=True):
+                    print(line.replace(old_file, new_file), end='')
+            except FileNotFoundError:
+                log("Cannot open {} file".format(config_file), level=DEBUG)
+    check_call(['systemctl', 'daemon-reload'])
 
 
 def swift_init(target, action, fatal=False):
